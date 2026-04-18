@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SM-2 Revisão</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161920;
+    --surface2: #1e2230;
+    --border: #2a2f3d;
+    --text: #e8eaf2;
+    --text-muted: #6b7191;
+    --text-dim: #3d4260;
+    --green: #2ecc8a;
+    --green-bg: #0d2b1e;
+    --green-border: #1a4d35;
+    --red: #ff5f6d;
+    --red-bg: #2b0d12;
+    --red-border: #4d1a1f;
+    --accent: #7c8cf8;
+    --accent-dim: #2a2f55;
+    --orange: #f5a623;
+    --orange-bg: #2b1f0d;
+    --orange-border: #4d3a1a;
+    --radius: 20px;
+    --radius-sm: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    font-size: 20px;
+  }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top, 16px) 20px env(safe-area-inset-bottom, 16px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s ease;
+  }
+  .screen.active { opacity: 1; pointer-events: all; }
+
+  .btn {
+    border: none;
+    border-radius: var(--radius);
+    padding: 18px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .15s, opacity .15s;
+    width: 100%;
+  }
+  .btn:active { transform: scale(0.97); opacity: .85; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-ghost {
+    background: var(--surface2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    font-size: 19px;
+    padding: 14px;
+  }
+
+  #screen-loading { justify-content: center; align-items: center; gap: 20px; text-align: center; }
+  .spinner {
+    width: 48px; height: 48px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #screen-loading p { color: var(--text-muted); font-size: 20px; }
+
+  #screen-review { gap: 0; padding-bottom: 0; overflow-y: auto; }
+
+  .review-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0 12px;
+    flex-shrink: 0;
+  }
+  .review-counter { font-size: 19px; font-weight: 600; color: var(--text-muted); }
+  .review-counter span { color: var(--text); }
+
+  .treino-badge {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--orange);
+    background: var(--orange-bg);
+    border: 1px solid var(--orange-border);
+    padding: 5px 14px;
+    border-radius: 20px;
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    flex-shrink: 0;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    border-radius: 2px;
+    transition: width .4s ease;
+  }
+  .progress-fill.treino {
+    background: linear-gradient(90deg, var(--orange), #f5d623);
+  }
+
+  .card-area {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 1200px;
+    padding: 8px 0;
+  }
+
+  .flip-card {
+    width: 100%;
+    max-width: 440px;
+    height: 260px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+  }
+  .flip-card.flipped { transform: rotateY(180deg); }
+  .flip-card.exit-left {
+    transform: translateX(-80px) rotate(-5deg);
+    opacity: 0;
+    transition: transform .22s ease, opacity .22s ease;
+  }
+  .flip-card.exit-right {
+    transform: translateX(80px) rotate(5deg);
+    opacity: 0;
+    transition: transform .22s ease, opacity .22s ease;
+  }
+  .flip-card.enter-right {
+    transform: translateX(80px) rotate(5deg);
+    opacity: 0;
+    transition: none;
+  }
+  .flip-card.enter-left {
+    transform: translateX(-80px) rotate(-5deg);
+    opacity: 0;
+    transition: none;
+  }
+
+  .card-face {
+    position: absolute;
+    inset: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    overflow-y: auto;
+  }
+  .card-back {
+    transform: rotateY(180deg);
+    background: var(--surface2);
+    border-color: var(--accent);
+  }
+  .card-face-content {
+    font-size: 24px;
+    line-height: 1.5;
+    color: var(--text);
+    font-weight: 400;
+    text-align: center;
+  }
+  .card-front .card-face-content {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    color: var(--accent);
+  }
+  .card-tap-hint {
+    font-size: 15px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .card-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    width: fit-content;
+  }
+  .badge-novo { background: var(--accent-dim); color: var(--accent); }
+  .badge-revisao { background: var(--green-bg); color: var(--green); }
+  .badge-treino { background: var(--orange-bg); color: var(--orange); }
+
+  .eval-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
+    flex-shrink: 0;
+    transition: opacity .3s ease;
+  }
+  .eval-buttons.hidden { opacity: 0; pointer-events: none; }
+
+  .btn-eval {
+    border: none;
+    border-radius: var(--radius);
+    padding: 16px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    transition: transform .15s, filter .15s;
+  }
+  .btn-eval:active { transform: scale(0.95); }
+  .btn-eval .eval-icon { font-size: 28px; }
+  .btn-eval .eval-label { font-size: 18px; }
+  .btn-lembrei { background: var(--green-bg); border: 1.5px solid var(--green-border); color: var(--green); }
+  .btn-lembrei:active { filter: brightness(1.2); }
+  .btn-nao-lembrei { background: var(--red-bg); border: 1.5px solid var(--red-border); color: var(--red); }
+  .btn-nao-lembrei:active { filter: brightness(1.2); }
+
+  .nav-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
+    flex-shrink: 0;
+    transition: opacity .3s ease;
+  }
+  .nav-buttons.hidden { opacity: 0; pointer-events: none; }
+
+  .btn-nav {
+    border: 1.5px solid var(--orange-border);
+    border-radius: var(--radius);
+    padding: 16px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    transition: transform .15s, filter .15s;
+    background: var(--orange-bg);
+    color: var(--orange);
+  }
+  .btn-nav:active { transform: scale(0.95); filter: brightness(1.2); }
+  .btn-nav .nav-icon { font-size: 28px; }
+  .btn-nav .nav-label { font-size: 18px; }
+  .btn-nav:disabled { opacity: 0.3; pointer-events: none; }
+
+  .nav-sair {
+    padding: 0 0 max(16px, env(safe-area-inset-bottom));
+    flex-shrink: 0;
+    transition: opacity .3s ease;
+  }
+  .nav-sair.hidden { opacity: 0; pointer-events: none; }
+
+  #screen-summary { justify-content: center; gap: 24px; padding-top: 40px; }
+  .summary-header { text-align: center; }
+  .summary-header h2 { font-family: 'DM Serif Display', serif; font-size: 44px; }
+  .summary-header p { color: var(--text-muted); font-size: 19px; margin-top: 6px; }
+
+  .summary-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+  }
+  .stat-number { font-family: 'DM Serif Display', serif; font-size: 52px; line-height: 1; }
+  .stat-number.green { color: var(--green); }
+  .stat-number.red { color: var(--red); }
+  .stat-label { font-size: 17px; color: var(--text-muted); margin-top: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; }
+
+  .summary-pct {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+  }
+  .pct-bar-bg { height: 10px; background: var(--surface2); border-radius: 4px; overflow: hidden; margin: 12px 0 10px; }
+  .pct-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease, background-color 0.5s ease; }
+  .pct-label { display: flex; justify-content: space-between; font-size: 18px; color: var(--text-muted); }
+  .pct-label strong { color: var(--text); font-size: 20px; }
+
+  .summary-syncing {
+    text-align: center; font-size: 18px; color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .sync-dot { width: 10px; height: 10px; background: var(--accent); border-radius: 50%; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+  .summary-actions {
+    display: flex; flex-direction: column; gap: 10px;
+    margin-top: auto;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .toast {
+    position: fixed; bottom: 100px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 14px 24px; border-radius: 30px;
+    font-size: 18px; opacity: 0; transition: all .3s ease; white-space: nowrap; z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="screen active" id="screen-loading">
+  <div class="spinner"></div>
+  <p id="loading-msg">Carregando itens do dia…</p>
+</div>
+
+<div class="screen" id="screen-review">
+  <div class="review-header">
+    <div class="review-counter"><span id="counter-atual">1</span> de <span id="counter-total">0</span></div>
+    <div class="treino-badge" id="treino-badge" style="display:none">🎯 Modo Treino</div>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+  </div>
+
+  <div class="card-area">
+    <div class="flip-card" id="flip-card" onclick="virarCard()">
+      <div class="card-face card-front">
+        <div class="card-badge" id="card-badge-front"></div>
+        <div class="card-face-content" id="card-tema">—</div>
+        <div class="card-tap-hint">👆 toque para ver o item</div>
+      </div>
+      <div class="card-face card-back">
+        <div class="card-face-content" id="card-text">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="eval-buttons hidden" id="eval-buttons">
+    <button class="btn-eval btn-nao-lembrei" onclick="avaliar('nao')">
+      <span class="eval-icon">✕</span>
+      <span class="eval-label">Não lembrei</span>
+    </button>
+    <button class="btn-eval btn-lembrei" onclick="avaliar('sim')">
+      <span class="eval-icon">✓</span>
+      <span class="eval-label">Lembrei</span>
+    </button>
+  </div>
+
+  <div class="nav-buttons hidden" id="nav-buttons">
+    <button class="btn-nav" id="btn-anterior" onclick="navegarTreino(-1)">
+      <span class="nav-icon">←</span>
+      <span class="nav-label">Anterior</span>
+    </button>
+    <button class="btn-nav" id="btn-proximo" onclick="navegarTreino(1)">
+      <span class="nav-icon">→</span>
+      <span class="nav-label">Próximo</span>
+    </button>
+  </div>
+  <div class="nav-sair hidden" id="nav-sair">
+    <button class="btn btn-ghost" onclick="sairDoTreino()">Sair do treino</button>
+  </div>
+</div>
+
+<div class="screen" id="screen-summary">
+  <div class="summary-header">
+    <h2 id="summary-emoji">✅ Revisão concluída!</h2>
+    <p id="summary-data"></p>
+  </div>
+
+  <div class="summary-stats">
+    <div class="stat-card">
+      <div class="stat-number green" id="stat-lembrei">0</div>
+      <div class="stat-label">Lembrei</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number red" id="stat-nao">0</div>
+      <div class="stat-label">Não lembrei</div>
+    </div>
+  </div>
+
+  <div class="summary-pct">
+    <div class="pct-label">
+      <span>Aproveitamento</span>
+      <strong id="pct-valor">0%</strong>
+    </div>
+    <div class="pct-bar-bg">
+      <div class="pct-bar-fill" id="pct-bar" style="width:0%"></div>
+    </div>
+    <div class="pct-label"><span id="pct-msg">—</span></div>
+  </div>
+
+  <div class="summary-syncing" id="sync-status"></div>
+
+  <div class="summary-actions">
+    <button class="btn btn-primary" id="btn-nova-rodada" onclick="novaRodada()">Revisar novamente hoje</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const APP_URL = 'https://script.google.com/macros/s/AKfycbzUpZUZJ5rcS-odqaSGbTIHwCzi-xJGgBgCsGR-Kq4kOta_iDD1pXpir8m2MDMoqQ1oRg/exec';
+
+let itens = [];
+let idx = 0;
+let resultados = [];
+let cardVirado = false;
+let modoTreino = false;
+
+function mostrarTela(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function embaralhar(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+async function carregarItens() {
+  mostrarTela('screen-loading');
+  document.getElementById('loading-msg').textContent = 'Carregando itens do dia…';
+  try {
+    const [resItens, resHoje] = await Promise.all([
+      fetch(`${APP_URL}?action=getItens`, { method: 'GET' }),
+      fetch(`${APP_URL}?action=getAvaliacoesHoje`, { method: 'GET' })
+    ]);
+    const dataItens = await resItens.json();
+    const dataHoje = await resHoje.json();
+
+    // Reconstitui resultados já feitos hoje
+    resultados = (dataHoje.avaliacoes || []).map(a => ({ id: a.id, avaliacao: a.avaliacao }));
+
+    if (dataItens.itens && dataItens.itens.length > 0) {
+      itens = dataItens.itens;
+      idx = 0;
+      modoTreino = false;
+      iniciarRevisao();
+    } else {
+      // Se não tem itens mas tem avaliações de hoje, mostra resumo do dia
+      if (resultados.length > 0) {
+        mostrarResumo();
+      } else {
+        mostrarDiaLivre();
+      }
+    }
+  } catch (e) {
+    alert('Erro ao conectar com o Apps Script.\n\nVerifique:\n• Permissões configuradas como "Qualquer pessoa"\n• Planilha tem itens com "Status = Ativo"');
+    mostrarTela('screen-loading');
+  }
+}
+
+async function carregarTreino() {
+  mostrarTela('screen-loading');
+  document.getElementById('loading-msg').textContent = 'Preparando modo treino…';
+  try {
+    const res = await fetch(`${APP_URL}?action=getTodosItens`, { method: 'GET' });
+    const data = await res.json();
+    if (data.itens && data.itens.length > 0) {
+      itens = embaralhar(data.itens);
+      idx = 0;
+      resultados = [];
+      modoTreino = true;
+      iniciarRevisao();
+    } else {
+      mostrarResumoVazio();
+    }
+  } catch (e) {
+    mostrarResumoVazio();
+  }
+}
+
+function mostrarDiaLivre() {
+  mostrarTela('screen-summary');
+  document.getElementById('stat-lembrei').textContent = '—';
+  document.getElementById('stat-nao').textContent = '—';
+  document.getElementById('pct-valor').textContent = '—';
+  document.getElementById('summary-emoji').textContent = '🎉 Dia livre!';
+  document.getElementById('summary-data').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  document.getElementById('pct-msg').textContent = 'Nenhum item para revisar hoje. Volte amanhã!';
+  document.getElementById('pct-bar').style.width = '100%';
+  document.getElementById('sync-status').innerHTML = '';
+  document.getElementById('btn-nova-rodada').textContent = '🎯 Entrar no modo treino';
+  // Marca que o próximo clique deve ir para treino
+  document.getElementById('btn-nova-rodada').dataset.action = 'treino';
+}
+
+function mostrarResumoVazio() {
+  mostrarTela('screen-summary');
+  document.getElementById('stat-lembrei').textContent = '—';
+  document.getElementById('stat-nao').textContent = '—';
+  document.getElementById('pct-valor').textContent = '—';
+  document.getElementById('summary-emoji').textContent = '🎉 Banco vazio!';
+  document.getElementById('summary-data').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  document.getElementById('pct-msg').textContent = 'Nenhum item no banco ainda.';
+  document.getElementById('pct-bar').style.width = '0%';
+  document.getElementById('sync-status').innerHTML = '';
+  document.getElementById('btn-nova-rodada').textContent = 'Tentar novamente';
+}
+
+function iniciarRevisao() {
+  mostrarTela('screen-review');
+  document.getElementById('treino-badge').style.display = modoTreino ? 'block' : 'none';
+  const pf = document.getElementById('progress-fill');
+  pf.className = 'progress-fill' + (modoTreino ? ' treino' : '');
+  atualizarCard(false, 'right');
+}
+
+function atualizarCard(animar, direcao) {
+  const item = itens[idx];
+  const total = itens.length;
+
+  document.getElementById('counter-atual').textContent = idx + 1;
+  document.getElementById('counter-total').textContent = total;
+  document.getElementById('progress-fill').style.width = ((idx / total) * 100) + '%';
+  document.getElementById('card-tema').textContent = item.tema || '—';
+  document.getElementById('card-text').textContent = item.item;
+
+  const rev = parseInt(item.totalRevisoes) || 0;
+  const badgeFront = document.getElementById('card-badge-front');
+
+  if (modoTreino) {
+    badgeFront.className = 'card-badge badge-treino';
+    badgeFront.textContent = '🎯 Treino';
+  } else if (rev === 0) {
+    badgeFront.className = 'card-badge badge-novo';
+    badgeFront.textContent = '✨ Novo item';
+  } else {
+    badgeFront.className = 'card-badge badge-revisao';
+    badgeFront.textContent = `🔁 ${rev}ª revisão`;
+  }
+
+  document.getElementById('eval-buttons').classList.add('hidden');
+  document.getElementById('nav-buttons').classList.add('hidden');
+  document.getElementById('nav-sair').classList.add('hidden');
+
+  if (modoTreino) {
+    document.getElementById('btn-anterior').disabled = idx === 0;
+  }
+
+  cardVirado = false;
+  const flipCard = document.getElementById('flip-card');
+
+  if (animar) {
+    const enterClass = direcao === 'right' ? 'enter-right' : 'enter-left';
+    flipCard.classList.add(enterClass);
+    flipCard.classList.remove('flipped');
+    void flipCard.offsetWidth;
+    setTimeout(() => {
+      flipCard.classList.remove(enterClass);
+      flipCard.style.transition = '';
+    }, 30);
+  } else {
+    flipCard.classList.remove('flipped');
+    flipCard.style.transition = 'none';
+    void flipCard.offsetWidth;
+    flipCard.style.transition = '';
+  }
+}
+
+function virarCard() {
+  const flipCard = document.getElementById('flip-card');
+  const evalBtns = document.getElementById('eval-buttons');
+  const navBtns = document.getElementById('nav-buttons');
+
+  if (!cardVirado) {
+    cardVirado = true;
+    flipCard.classList.add('flipped');
+    setTimeout(() => {
+      if (modoTreino) {
+        navBtns.classList.remove('hidden');
+        document.getElementById('nav-sair').classList.remove('hidden');
+      }
+      else evalBtns.classList.remove('hidden');
+    }, 350);
+  } else {
+    cardVirado = false;
+    flipCard.classList.remove('flipped');
+    evalBtns.classList.add('hidden');
+    navBtns.classList.add('hidden');
+    document.getElementById('nav-sair').classList.add('hidden');
+  }
+}
+
+function navegarTreino(direcao) {
+  const flipCard = document.getElementById('flip-card');
+  document.getElementById('nav-buttons').classList.add('hidden');
+  document.getElementById('nav-sair').classList.add('hidden');
+
+  const exitClass = direcao === 1 ? 'exit-left' : 'exit-right';
+  flipCard.style.transition = 'transform .22s ease, opacity .22s ease';
+  flipCard.classList.add(exitClass);
+
+  setTimeout(() => {
+    flipCard.classList.remove(exitClass);
+    flipCard.style.transition = '';
+    const novoIdx = idx + direcao;
+    if (novoIdx >= itens.length) {
+      mostrarResumo();
+    } else if (novoIdx < 0) {
+      atualizarCard(true, 'right');
+    } else {
+      idx = novoIdx;
+      atualizarCard(true, direcao === 1 ? 'right' : 'left');
+    }
+  }, 230);
+}
+
+function avaliar(resp) {
+  const item = itens[idx];
+  const flipCard = document.getElementById('flip-card');
+  const evalBtns = document.getElementById('eval-buttons');
+  const avaliacao = resp === 'sim' ? 'Lembrei' : 'Não lembrei';
+
+  resultados.push({ id: item.id, avaliacao });
+
+  fetch(APP_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'processarAvaliacoes', resultados: [{ id: item.id, avaliacao }] }),
+    headers: { 'Content-Type': 'text/plain' }
+  }).catch(() => {});
+
+  evalBtns.classList.add('hidden');
+  flipCard.style.transition = 'transform .22s ease, opacity .22s ease';
+  flipCard.classList.add('exit-left');
+
+  setTimeout(() => {
+    flipCard.classList.remove('exit-left');
+    flipCard.style.transition = '';
+    idx++;
+    if (idx >= itens.length) mostrarResumo();
+    else atualizarCard(true, 'right');
+  }, 230);
+}
+
+async function mostrarResumo() {
+  mostrarTela('screen-loading');
+  document.getElementById('loading-msg').textContent = 'Calculando aproveitamento…';
+
+  // Aguarda um momento para garantir que o último item foi salvo no Sheets
+  await new Promise(r => setTimeout(r, 1500));
+
+  // Busca avaliações de hoje do Sheets
+  try {
+    const res = await fetch(`${APP_URL}?action=getAvaliacoesHoje`, { method: 'GET' });
+    const data = await res.json();
+    if (data.avaliacoes && data.avaliacoes.length > 0) {
+      resultados = data.avaliacoes.map(a => ({ id: a.id, avaliacao: a.avaliacao }));
+    }
+  } catch (e) {
+    // usa resultados já em memória se falhar
+  }
+
+  const lembrei = resultados.filter(r => r.avaliacao === 'Lembrei').length;
+  const nao = resultados.filter(r => r.avaliacao === 'Não lembrei').length;
+  const total = resultados.length;
+  const pct = total > 0 ? Math.round((lembrei / total) * 100) : 0;
+
+  document.getElementById('stat-lembrei').textContent = total > 0 ? lembrei : '—';
+  document.getElementById('stat-nao').textContent = total > 0 ? nao : '—';
+  document.getElementById('pct-valor').textContent = total > 0 ? pct + '%' : '—';
+  document.getElementById('summary-data').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  let emoji = '✅', msg = '';
+  if (total === 0) {
+    emoji = '🎉'; msg = 'Nenhuma revisão feita ainda hoje.';
+  } else if (pct >= 90) { emoji = '🔥'; msg = 'Excelente! Você está dominando o conteúdo.'; }
+  else if (pct >= 70) { emoji = '✅'; msg = 'Ótimo desempenho! Continue assim.'; }
+  else if (pct >= 50) { emoji = '💪'; msg = 'Bom esforço. Os itens difíceis voltarão em breve.'; }
+  else { emoji = '📚'; msg = 'Não desanime! A repetição vai consolidar o conteúdo.'; }
+
+  document.getElementById('summary-emoji').textContent = emoji + ' Revisão concluída!';
+  document.getElementById('pct-msg').textContent = msg;
+  document.getElementById('sync-status').innerHTML = total > 0
+    ? '<span style="color:var(--green)">✓ Itens salvos automaticamente</span>'
+    : '';
+  document.getElementById('btn-nova-rodada').textContent = '🎯 Entrar no modo treino';
+  document.getElementById('btn-nova-rodada').dataset.action = 'treino';
+  const pctFinal = total > 0 ? pct : 0;
+  const barEl = document.getElementById('pct-bar');
+  const barColor = pct < 50 ? '#ff5f6d' : pct < 75 ? '#f5a623' : '#2ecc8a';
+  barEl.style.background = barColor;
+
+  if (modoTreino) {
+    // Treino: sem animação, já aparece no valor correto
+    barEl.style.transition = 'none';
+    barEl.style.width = pctFinal + '%';
+    mostrarTela('screen-summary');
+    setTimeout(() => { barEl.style.transition = ''; }, 50);
+  } else {
+    // Revisão normal: anima o preenchimento
+    barEl.style.transition = 'none';
+    barEl.style.width = '0%';
+    mostrarTela('screen-summary');
+    setTimeout(() => {
+      barEl.style.transition = 'width 1s ease';
+      barEl.style.width = pctFinal + '%';
+    }, 100);
+  }
+}
+
+function sairDoTreino() {
+  mostrarResumo();
+}
+
+async function novaRodada() {
+  const btn = document.getElementById('btn-nova-rodada');
+  if (btn.dataset.action === 'treino') {
+    btn.dataset.action = '';
+    await carregarTreino();
+  } else {
+    await carregarItens();
+  }
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+window.addEventListener('load', () => { carregarItens(); });
+</script>
+</body>
+</html>
