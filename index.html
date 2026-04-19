@@ -288,12 +288,17 @@
   }
   .nav-sair.hidden { opacity: 0; pointer-events: none; }
 
-  #screen-summary { justify-content: center; gap: 24px; padding-top: 40px; }
-  .summary-header { text-align: center; }
-  .summary-header h2 { font-family: 'DM Serif Display', serif; font-size: 44px; }
+  #screen-summary {
+    gap: 14px;
+    padding-top: 32px;
+    overflow-y: auto;
+  }
+
+  .summary-header { text-align: center; flex-shrink: 0; }
+  .summary-header h2 { font-family: 'DM Serif Display', serif; font-size: 40px; }
   .summary-header p { color: var(--text-muted); font-size: 19px; margin-top: 6px; }
 
-  .summary-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .summary-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex-shrink: 0; }
   .stat-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -301,33 +306,78 @@
     padding: 20px;
     text-align: center;
   }
-  .stat-number { font-family: 'DM Serif Display', serif; font-size: 52px; line-height: 1; }
+  .stat-number { font-family: 'DM Serif Display', serif; font-size: 48px; line-height: 1; }
   .stat-number.green { color: var(--green); }
   .stat-number.red { color: var(--red); }
-  .stat-label { font-size: 17px; color: var(--text-muted); margin-top: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; }
+  .stat-label { font-size: 15px; color: var(--text-muted); margin-top: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: .8px; }
 
   .summary-pct {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 20px 24px;
+    flex-shrink: 0;
   }
   .pct-bar-bg { height: 10px; background: var(--surface2); border-radius: 4px; overflow: hidden; margin: 12px 0 10px; }
   .pct-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease, background-color 0.5s ease; }
   .pct-label { display: flex; justify-content: space-between; font-size: 18px; color: var(--text-muted); }
   .pct-label strong { color: var(--text); font-size: 20px; }
 
+  .summary-historico {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    flex-shrink: 0;
+  }
+  .hist-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .hist-media { font-size: 22px; font-weight: 600; color: var(--accent); }
+  .hist-dias { font-size: 18px; color: var(--text-muted); margin-top: 2px; }
+
+  .hist-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    height: 100px;
+    margin-top: 14px;
+  }
+  .hist-bar-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+    justify-content: flex-end;
+  }
+  .hist-bar {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    min-height: 4px;
+  }
+  .hist-bar-label { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+
   .summary-syncing {
     text-align: center; font-size: 18px; color: var(--text-muted);
     display: flex; align-items: center; justify-content: center; gap: 8px;
+    flex-shrink: 0;
   }
-  .sync-dot { width: 10px; height: 10px; background: var(--accent); border-radius: 50%; animation: pulse 1.4s ease-in-out infinite; }
-  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
 
   .summary-actions {
     display: flex; flex-direction: column; gap: 10px;
     margin-top: auto;
     padding-bottom: max(16px, env(safe-area-inset-bottom));
+    flex-shrink: 0;
   }
 
   .toast {
@@ -352,11 +402,9 @@
     <div class="review-counter"><span id="counter-atual">1</span> de <span id="counter-total">0</span></div>
     <div class="treino-badge" id="treino-badge" style="display:none">🎯 Modo Treino</div>
   </div>
-
   <div class="progress-bar">
     <div class="progress-fill" id="progress-fill" style="width:0%"></div>
   </div>
-
   <div class="card-area">
     <div class="flip-card" id="flip-card" onclick="virarCard()">
       <div class="card-face card-front">
@@ -369,7 +417,6 @@
       </div>
     </div>
   </div>
-
   <div class="eval-buttons hidden" id="eval-buttons">
     <button class="btn-eval btn-nao-lembrei" onclick="avaliar('nao')">
       <span class="eval-icon">✕</span>
@@ -380,7 +427,6 @@
       <span class="eval-label">Lembrei</span>
     </button>
   </div>
-
   <div class="nav-buttons hidden" id="nav-buttons">
     <button class="btn-nav" id="btn-anterior" onclick="navegarTreino(-1)">
       <span class="nav-icon">←</span>
@@ -401,7 +447,6 @@
     <h2 id="summary-emoji">✅ Revisão concluída!</h2>
     <p id="summary-data"></p>
   </div>
-
   <div class="summary-stats">
     <div class="stat-card">
       <div class="stat-number green" id="stat-lembrei">0</div>
@@ -412,10 +457,9 @@
       <div class="stat-label">Não lembrei</div>
     </div>
   </div>
-
   <div class="summary-pct">
     <div class="pct-label">
-      <span>Aproveitamento</span>
+      <span>Hoje</span>
       <strong id="pct-valor">0%</strong>
     </div>
     <div class="pct-bar-bg">
@@ -423,9 +467,15 @@
     </div>
     <div class="pct-label"><span id="pct-msg">—</span></div>
   </div>
-
+  <div class="summary-historico" id="bloco-historico" style="display:none">
+    <div class="hist-title">
+      <span>📊 Histórico</span>
+      <span class="hist-media" id="hist-media">—</span>
+    </div>
+    <div class="hist-dias" id="hist-dias">—</div>
+    <div class="hist-bars" id="hist-bars"></div>
+  </div>
   <div class="summary-syncing" id="sync-status"></div>
-
   <div class="summary-actions">
     <button class="btn btn-primary" id="btn-nova-rodada" onclick="novaRodada()">Revisar novamente hoje</button>
   </div>
@@ -467,7 +517,6 @@ async function carregarItens() {
     const dataItens = await resItens.json();
     const dataHoje = await resHoje.json();
 
-    // Reconstitui resultados já feitos hoje
     resultados = (dataHoje.avaliacoes || []).map(a => ({ id: a.id, avaliacao: a.avaliacao }));
 
     if (dataItens.itens && dataItens.itens.length > 0) {
@@ -476,7 +525,6 @@ async function carregarItens() {
       modoTreino = false;
       iniciarRevisao();
     } else {
-      // Se não tem itens mas tem avaliações de hoje, mostra resumo do dia
       if (resultados.length > 0) {
         mostrarResumo();
       } else {
@@ -520,8 +568,8 @@ function mostrarDiaLivre() {
   document.getElementById('pct-bar').style.width = '100%';
   document.getElementById('sync-status').innerHTML = '';
   document.getElementById('btn-nova-rodada').textContent = '🎯 Entrar no modo treino';
-  // Marca que o próximo clique deve ir para treino
   document.getElementById('btn-nova-rodada').dataset.action = 'treino';
+  carregarEExibirHistorico();
 }
 
 function mostrarResumoVazio() {
@@ -535,6 +583,7 @@ function mostrarResumoVazio() {
   document.getElementById('pct-bar').style.width = '0%';
   document.getElementById('sync-status').innerHTML = '';
   document.getElementById('btn-nova-rodada').textContent = 'Tentar novamente';
+  document.getElementById('bloco-historico').style.display = 'none';
 }
 
 function iniciarRevisao() {
@@ -609,8 +658,9 @@ function virarCard() {
       if (modoTreino) {
         navBtns.classList.remove('hidden');
         document.getElementById('nav-sair').classList.remove('hidden');
+      } else {
+        evalBtns.classList.remove('hidden');
       }
-      else evalBtns.classList.remove('hidden');
     }, 350);
   } else {
     cardVirado = false;
@@ -645,6 +695,15 @@ function navegarTreino(direcao) {
   }, 230);
 }
 
+function finalizarSessao(pct, lembrei, naoLembrei) {
+  if (modoTreino) return;
+  fetch(APP_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'finalizarSessao', pct, lembrei, naoLembrei }),
+    headers: { 'Content-Type': 'text/plain' }
+  }).catch(() => {});
+}
+
 function avaliar(resp) {
   const item = itens[idx];
   const flipCard = document.getElementById('flip-card');
@@ -653,11 +712,17 @@ function avaliar(resp) {
 
   resultados.push({ id: item.id, avaliacao });
 
+  const lembrei = resultados.filter(r => r.avaliacao === 'Lembrei').length;
+  const nao = resultados.filter(r => r.avaliacao === 'Não lembrei').length;
+  const pct = Math.round((lembrei / resultados.length) * 100);
+
   fetch(APP_URL, {
     method: 'POST',
     body: JSON.stringify({ action: 'processarAvaliacoes', resultados: [{ id: item.id, avaliacao }] }),
     headers: { 'Content-Type': 'text/plain' }
   }).catch(() => {});
+
+  finalizarSessao(pct, lembrei, nao);
 
   evalBtns.classList.add('hidden');
   flipCard.style.transition = 'transform .22s ease, opacity .22s ease';
@@ -672,22 +737,82 @@ function avaliar(resp) {
   }, 230);
 }
 
+async function carregarEExibirHistorico() {
+  try {
+    const res = await fetch(`${APP_URL}?action=getHistorico`, { method: 'GET' });
+    const data = await res.json();
+    renderizarHistorico(data.historico || []);
+  } catch (e) {
+    document.getElementById('bloco-historico').style.display = 'none';
+  }
+}
+
+function renderizarHistorico(historico) {
+  const bloco = document.getElementById('bloco-historico');
+  if (!historico || historico.length === 0) {
+    bloco.style.display = 'none';
+    return;
+  }
+
+  bloco.style.display = 'block';
+
+  const media = Math.round(historico.reduce((acc, h) => acc + h.pct, 0) / historico.length);
+  const dias = historico.length;
+  document.getElementById('hist-media').textContent = `Média: ${media}%`;
+  document.getElementById('hist-dias').textContent = `${dias} dia${dias !== 1 ? 's' : ''} de revisão`;
+
+  const barsEl = document.getElementById('hist-bars');
+  barsEl.innerHTML = '';
+
+  // Gera os últimos 7 dias sempre, com ou sem dado
+  const hoje = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const dia = new Date(hoje);
+    dia.setDate(hoje.getDate() - i);
+    const label = `${String(dia.getDate()).padStart(2,'0')}/${String(dia.getMonth()+1).padStart(2,'0')}`;
+    const dataStr = `${label}/${dia.getFullYear()}`;
+    const h = historico.find(x => x.data === dataStr);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'hist-bar-wrap';
+
+    const bar = document.createElement('div');
+    bar.className = 'hist-bar';
+
+    if (h) {
+      const cor = h.pct >= 75 ? 'var(--green)' : h.pct >= 50 ? 'var(--orange)' : 'var(--red)';
+      bar.style.background = cor;
+      bar.style.height = `${Math.max(6, Math.round((h.pct / 100) * 88))}px`;
+      bar.title = `${label}: ${h.pct}%`;
+    } else {
+      bar.style.background = 'var(--border)';
+      bar.style.height = '4px';
+      bar.title = `${label}: sem revisão`;
+    }
+
+    const lbl = document.createElement('div');
+    lbl.className = 'hist-bar-label';
+    lbl.textContent = label;
+
+    wrap.appendChild(bar);
+    wrap.appendChild(lbl);
+    barsEl.appendChild(wrap);
+  }
+}
+
 async function mostrarResumo() {
   mostrarTela('screen-loading');
   document.getElementById('loading-msg').textContent = 'Calculando aproveitamento…';
 
-  // Aguarda um momento para garantir que o último item foi salvo no Sheets
-  await new Promise(r => setTimeout(r, 1500));
-
-  // Busca avaliações de hoje do Sheets
-  try {
-    const res = await fetch(`${APP_URL}?action=getAvaliacoesHoje`, { method: 'GET' });
-    const data = await res.json();
-    if (data.avaliacoes && data.avaliacoes.length > 0) {
-      resultados = data.avaliacoes.map(a => ({ id: a.id, avaliacao: a.avaliacao }));
-    }
-  } catch (e) {
-    // usa resultados já em memória se falhar
+  // Usa memória como fonte de verdade; Sheets só como fallback se memória estiver vazia
+  if (resultados.length === 0) {
+    try {
+      const res = await fetch(`${APP_URL}?action=getAvaliacoesHoje`, { method: 'GET' });
+      const data = await res.json();
+      if (data.avaliacoes && data.avaliacoes.length > 0) {
+        resultados = data.avaliacoes.map(a => ({ id: a.id, avaliacao: a.avaliacao }));
+      }
+    } catch (e) {}
   }
 
   const lembrei = resultados.filter(r => r.avaliacao === 'Lembrei').length;
@@ -715,25 +840,25 @@ async function mostrarResumo() {
     : '';
   document.getElementById('btn-nova-rodada').textContent = '🎯 Entrar no modo treino';
   document.getElementById('btn-nova-rodada').dataset.action = 'treino';
-  const pctFinal = total > 0 ? pct : 0;
+
   const barEl = document.getElementById('pct-bar');
   const barColor = pct < 50 ? '#ff5f6d' : pct < 75 ? '#f5a623' : '#2ecc8a';
   barEl.style.background = barColor;
 
   if (modoTreino) {
-    // Treino: sem animação, já aparece no valor correto
     barEl.style.transition = 'none';
-    barEl.style.width = pctFinal + '%';
+    barEl.style.width = (total > 0 ? pct : 0) + '%';
     mostrarTela('screen-summary');
     setTimeout(() => { barEl.style.transition = ''; }, 50);
+    document.getElementById('bloco-historico').style.display = 'none';
   } else {
-    // Revisão normal: anima o preenchimento
     barEl.style.transition = 'none';
     barEl.style.width = '0%';
+    await carregarEExibirHistorico();
     mostrarTela('screen-summary');
     setTimeout(() => {
       barEl.style.transition = 'width 1s ease';
-      barEl.style.width = pctFinal + '%';
+      barEl.style.width = (total > 0 ? pct : 0) + '%';
     }, 100);
   }
 }
