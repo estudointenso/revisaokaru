@@ -603,8 +603,8 @@ function atualizarCard(animar, direcao) {
   document.getElementById('counter-atual').textContent = idx + 1;
   document.getElementById('counter-total').textContent = total;
   document.getElementById('progress-fill').style.width = ((idx / total) * 100) + '%';
-  document.getElementById('card-tema').textContent = item.tema || '—';
-  document.getElementById('card-text').textContent = item.item;
+  document.getElementById('card-tema').innerHTML = (item.tema || '—').replace(/\n/g, '<br>');
+  document.getElementById('card-text').innerHTML = (item.item || '').replace(/\n/g, '<br>');
 
   const rev = parseInt(item.totalRevisoes) || 0;
   const badgeFront = document.getElementById('card-badge-front');
