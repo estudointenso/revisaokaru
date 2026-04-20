@@ -257,7 +257,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
-    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
+    padding: 2px 0 max(12px, env(safe-area-inset-bottom));
     flex-shrink: 0;
     transition: opacity .3s ease;
   }
@@ -493,6 +493,7 @@ let idx = 0;
 let resultados = [];
 let cardVirado = false;
 let modoTreino = false;
+let idsVistosTreino = [];
 
 function mostrarTela(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -539,21 +540,46 @@ async function carregarItens() {
   }
 }
 
+// ─── MODIFICAÇÃO 1: carregarTreino lê a fila persistente da planilha ──────────
 async function carregarTreino() {
   mostrarTela('screen-loading');
   document.getElementById('loading-msg').textContent = 'Preparando modo treino…';
   try {
-    const res = await fetch(`${APP_URL}?action=getTodosItens`, { method: 'GET' });
-    const data = await res.json();
-    if (data.itens && data.itens.length > 0) {
-      itens = embaralhar(data.itens);
-      idx = 0;
-      resultados = [];
-      modoTreino = true;
-      iniciarRevisao();
-    } else {
+    // Busca todos os itens E a fila de vistos simultaneamente
+    const [resTodos, resFila] = await Promise.all([
+      fetch(`${APP_URL}?action=getTodosItens`, { method: 'GET' }),
+      fetch(`${APP_URL}?action=getFilaTreino`, { method: 'GET' })
+    ]);
+    const dataTodos = await resTodos.json();
+    const dataFila = await resFila.json();
+
+    if (!dataTodos.itens || dataTodos.itens.length === 0) {
       mostrarResumoVazio();
+      return;
     }
+
+    const todosIds = dataTodos.itens.map(i => String(i.id));
+    const vistos = (dataFila.ids || []).map(String);
+
+    // Filtra itens ainda não vistos neste ciclo
+    let pendentes = dataTodos.itens.filter(i => !vistos.includes(String(i.id)));
+
+    // Se não há mais pendentes, zera a fila na planilha e começa tudo de novo
+    if (pendentes.length === 0) {
+      await fetch(APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'zerarFilaTreino' }),
+        headers: { 'Content-Type': 'text/plain' }
+      });
+      pendentes = dataTodos.itens;
+    }
+
+    itens = embaralhar(pendentes);
+    idsVistosTreino = vistos;
+    idx = 0;
+    resultados = [];
+    modoTreino = true;
+    iniciarRevisao();
   } catch (e) {
     mostrarResumoVazio();
   }
@@ -673,10 +699,17 @@ function virarCard() {
   }
 }
 
+// ─── MODIFICAÇÃO 2: navegarTreino registra o item visto na planilha ───────────
 function navegarTreino(direcao) {
   const flipCard = document.getElementById('flip-card');
   document.getElementById('nav-buttons').classList.add('hidden');
   document.getElementById('nav-sair').classList.add('hidden');
+
+  // Registra o item atual como visto antes de avançar | Só registra como visto ao avançar (→), nunca ao voltar (←)
+  if (direcao === 1 && !idsVistosTreino.includes(String(itens[idx].id))) {
+    idsVistosTreino.push(String(itens[idx].id));
+    registrarVistoTreino(itens[idx].id);
+  }
 
   const exitClass = direcao === 1 ? 'exit-left' : 'exit-right';
   flipCard.style.transition = 'transform .22s ease, opacity .22s ease';
@@ -695,6 +728,15 @@ function navegarTreino(direcao) {
       atualizarCard(true, direcao === 1 ? 'right' : 'left');
     }
   }, 230);
+}
+
+// ─── NOVA FUNÇÃO: envia um ID para ser acrescentado à fila persistente ────────
+function registrarVistoTreino(id) {
+  fetch(APP_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'adicionarFilaTreino', id: String(id) }),
+    headers: { 'Content-Type': 'text/plain' }
+  }).catch(() => {});
 }
 
 function finalizarSessao(pct, lembrei, naoLembrei) {
@@ -766,7 +808,6 @@ function renderizarHistorico(historico) {
   const barsEl = document.getElementById('hist-bars');
   barsEl.innerHTML = '';
 
-  // Gera os últimos 7 dias sempre, com ou sem dado
   const hoje = new Date();
   for (let i = 6; i >= 0; i--) {
     const dia = new Date(hoje);
@@ -806,7 +847,6 @@ async function mostrarResumo() {
   mostrarTela('screen-loading');
   document.getElementById('loading-msg').textContent = 'Calculando aproveitamento…';
 
-  // Usa memória como fonte de verdade; Sheets só como fallback se memória estiver vazia
   if (resultados.length === 0) {
     try {
       const res = await fetch(`${APP_URL}?action=getAvaliacoesHoje`, { method: 'GET' });
@@ -847,22 +887,15 @@ async function mostrarResumo() {
   const barColor = pct < 50 ? '#ff5f6d' : pct < 75 ? '#f5a623' : '#2ecc8a';
   barEl.style.background = barColor;
 
-  if (modoTreino) {
-    barEl.style.transition = 'none';
+  // ─── MODIFICAÇÃO 3: histórico sempre carrega, inclusive ao sair do modo treino
+  barEl.style.transition = 'none';
+  barEl.style.width = '0%';
+  await carregarEExibirHistorico();
+  mostrarTela('screen-summary');
+  setTimeout(() => {
+    barEl.style.transition = 'width 1s ease';
     barEl.style.width = (total > 0 ? pct : 0) + '%';
-    mostrarTela('screen-summary');
-    setTimeout(() => { barEl.style.transition = ''; }, 50);
-    document.getElementById('bloco-historico').style.display = 'none';
-  } else {
-    barEl.style.transition = 'none';
-    barEl.style.width = '0%';
-    await carregarEExibirHistorico();
-    mostrarTela('screen-summary');
-    setTimeout(() => {
-      barEl.style.transition = 'width 1s ease';
-      barEl.style.width = (total > 0 ? pct : 0) + '%';
-    }, 100);
-  }
+  }, 100);
 }
 
 function sairDoTreino() {
