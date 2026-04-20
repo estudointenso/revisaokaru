@@ -230,7 +230,7 @@
     flex-shrink: 0;
     transition: opacity .3s ease;
   }
-  .eval-buttons.hidden { opacity: 0; pointer-events: none; }
+  .eval-buttons.hidden { display: none; }
 
   .btn-eval {
     border: none;
@@ -256,12 +256,13 @@
   .nav-buttons {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
     gap: 10px;
-    padding: 2px 0 max(12px, env(safe-area-inset-bottom));
+    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
     flex-shrink: 0;
     transition: opacity .3s ease;
   }
-  .nav-buttons.hidden { opacity: 0; pointer-events: none; }
+  .nav-buttons.hidden  { display: none; }
 
   .btn-nav {
     border: 1.5px solid var(--orange-border);
