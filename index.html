@@ -221,6 +221,7 @@
   .badge-novo { background: var(--accent-dim); color: var(--accent); }
   .badge-revisao { background: var(--green-bg); color: var(--green); }
   .badge-treino { background: var(--orange-bg); color: var(--orange); }
+  .badge-futuro { background: #1a2b2b; color: #4ecdc4; border: 1px solid #2a4a4a; }
 
   /* ── Imagens nos cards ── */
   .card-img {
@@ -691,6 +692,10 @@ function atualizarCard(animar, direcao) {
   if (modoTreino) {
     badgeFront.className = 'card-badge badge-treino';
     badgeFront.textContent = '🎯 Treino';
+  } else if (item.diasAdiantado > 0) {
+    // Item futuro antecipado para completar as 40 questões
+    badgeFront.className = 'card-badge badge-futuro';
+    badgeFront.textContent = `⏭ +${item.diasAdiantado}d adiantado`;
   } else if (rev === 0) {
     badgeFront.className = 'card-badge badge-novo';
     badgeFront.textContent = '✨ Novo item';
