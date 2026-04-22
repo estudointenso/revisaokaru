@@ -40,6 +40,7 @@
     position: fixed;
     width: 100%;
     font-size: 20px;
+    touch-action: manipulation;
   }
 
   .screen {
@@ -86,7 +87,13 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   #screen-loading p { color: var(--text-muted); font-size: 20px; }
 
-  #screen-review { gap: 0; padding-bottom: 0; overflow-y: auto; }
+  #screen-review { 
+    gap: 0; 
+    padding-bottom: 0; 
+    overflow-y: auto; 
+    height: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
 
   .review-header {
     display: flex;
@@ -179,9 +186,8 @@
     gap: 12px;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    overflow-y: auto;
+    overflow-y: scroll;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
   }
   .card-back {
     transform: rotateY(180deg);
