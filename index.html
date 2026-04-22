@@ -525,11 +525,8 @@
 const APP_URL = 'https://script.google.com/macros/s/AKfycbymffK7phd3WRnxArNHXTlXJu23RdJtGSGncxAXq8kY520l_5wUEyeb91koMij4ask1xQ/exec';
 
 // ── Chaves do localStorage ──
-const LS_RESULTADOS      = 'revisao_resultados';
-const LS_DATA            = 'revisao_data';
-const LS_HISTORICO       = 'revisao_historico';
-const LS_HIST_DATA       = 'revisao_historico_data';
-const LS_SESSAO_COMPLETA = 'revisao_sessao_completa'; // "true" quando terminou o dia
+const LS_HISTORICO = 'revisao_historico';
+const LS_HIST_DATA = 'revisao_historico_data';
 
 let itens = [];
 let idx = 0;
@@ -538,48 +535,23 @@ let cardVirado = false;
 let modoTreino = false;
 let idsVistosTreino = [];
 
-// ───────────────────────────────────────────────────────────────
-// UTILITÁRIOS localStorage
-// ───────────────────────────────────────────────────────────────
 function hojeStr() {
-  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  return new Date().toISOString().slice(0, 10);
 }
 
-function salvarResultadosLocal() {
-  localStorage.setItem(LS_RESULTADOS, JSON.stringify(resultados));
-  localStorage.setItem(LS_DATA, hojeStr());
-}
-
-function carregarResultadosLocal() {
-  if (localStorage.getItem(LS_DATA) !== hojeStr()) {
-    // Dia virou — limpa tudo
-    localStorage.removeItem(LS_RESULTADOS);
-    localStorage.removeItem(LS_DATA);
-    localStorage.removeItem(LS_HISTORICO);
-    localStorage.removeItem(LS_HIST_DATA);
-    localStorage.removeItem(LS_SESSAO_COMPLETA);
-    return [];
-  }
-  try { return JSON.parse(localStorage.getItem(LS_RESULTADOS)) || []; }
-  catch { return []; }
-}
-
-// O histórico só é cacheado APÓS a sessão ser concluída no dia
 function salvarHistoricoLocal(historico) {
   localStorage.setItem(LS_HISTORICO, JSON.stringify(historico));
   localStorage.setItem(LS_HIST_DATA, hojeStr());
 }
 
-// Só retorna cache se a sessão do dia já foi concluída
 function carregarHistoricoLocal() {
-  if (localStorage.getItem(LS_HIST_DATA) !== hojeStr()) return null;
-  if (localStorage.getItem(LS_SESSAO_COMPLETA) !== 'true') return null;
+  if (localStorage.getItem(LS_HIST_DATA) !== hojeStr()) {
+    localStorage.removeItem(LS_HISTORICO);
+    localStorage.removeItem(LS_HIST_DATA);
+    return null;
+  }
   try { return JSON.parse(localStorage.getItem(LS_HISTORICO)); }
   catch { return null; }
-}
-
-function marcarSessaoCompleta() {
-  localStorage.setItem(LS_SESSAO_COMPLETA, 'true');
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -606,7 +578,6 @@ async function carregarItens() {
   mostrarTela('screen-loading');
   document.getElementById('loading-msg').textContent = 'Carregando itens do dia…';
   try {
-    // Sempre busca getItens + getSummary em paralelo na abertura
     const [resItens, resSummary] = await Promise.all([
       fetch(`${APP_URL}?action=getItens`, { method: 'GET' }),
       fetch(`${APP_URL}?action=getSummary`, { method: 'GET' })
@@ -615,20 +586,8 @@ async function carregarItens() {
     const dataItens   = await resItens.json();
     const dataSummary = await resSummary.json();
 
-    // Reconcilia resultados: servidor é fonte da verdade
-    const local  = carregarResultadosLocal();
-    const server = (dataSummary.avaliacoes || []).map(a => ({ id: a.id, avaliacao: a.avaliacao }));
-    resultados = server.length >= local.length ? server : local;
-    salvarResultadosLocal();
-
-    // Salva histórico do servidor (sempre atualizado na abertura)
-    if (dataSummary.historico) {
-      salvarHistoricoLocal(dataSummary.historico);
-      // Marca sessão como completa apenas se não há itens pendentes
-      if (!dataItens.itens || dataItens.itens.length === 0) {
-        marcarSessaoCompleta();
-      }
-    }
+    // Resultados vêm sempre do servidor
+    resultados = (dataSummary.avaliacoes || []).map(a => ({ id: a.id, avaliacao: a.avaliacao }));
 
     if (dataItens.itens && dataItens.itens.length > 0) {
       itens = dataItens.itens;
@@ -637,9 +596,9 @@ async function carregarItens() {
       iniciarRevisao();
     } else {
       if (resultados.length > 0) {
-        mostrarResumo();
+        await mostrarResumo(dataSummary);
       } else {
-        mostrarDiaLivre();
+        mostrarDiaLivre(dataSummary);
       }
     }
   } catch (e) {
@@ -882,11 +841,6 @@ function avaliar(resp) {
   const avaliacao = resp === 'sim' ? 'Lembrei' : 'Não lembrei';
 
   resultados.push({ id: item.id, avaliacao });
-  salvarResultadosLocal(); // ← persiste a cada avaliação
-
-  const lembrei = resultados.filter(r => r.avaliacao === 'Lembrei').length;
-  const nao     = resultados.filter(r => r.avaliacao === 'Não lembrei').length;
-  const pct     = Math.round((lembrei / resultados.length) * 100);
 
   fetch(APP_URL, {
     method: 'POST',
@@ -894,7 +848,14 @@ function avaliar(resp) {
     headers: { 'Content-Type': 'text/plain' }
   }).catch(() => {});
 
-  finalizarSessao(pct, lembrei, nao);
+  // Grava histórico só no último item
+  const isUltimoItem = (idx + 1) >= itens.length;
+  if (isUltimoItem) {
+    const totalLembrei = resultados.filter(r => r.avaliacao === 'Lembrei').length;
+    const totalNao     = resultados.filter(r => r.avaliacao === 'Não lembrei').length;
+    const totalPct     = Math.round((totalLembrei / resultados.length) * 100);
+    finalizarSessao(totalPct, totalLembrei, totalNao);
+  }
 
   evalBtns.classList.add('hidden');
   flipCard.style.transition = 'transform .22s ease, opacity .22s ease';
@@ -912,36 +873,20 @@ function avaliar(resp) {
 // ───────────────────────────────────────────────────────────────
 // RESUMO
 // ───────────────────────────────────────────────────────────────
-async function mostrarResumo() {
+async function mostrarResumo(summaryPreCarregado) {
   mostrarTela('screen-loading');
   document.getElementById('loading-msg').textContent = 'Calculando aproveitamento…';
 
-  // 1. Usa memória ou localStorage
-  if (resultados.length === 0) {
-    resultados = carregarResultadosLocal();
-  }
-
-  // 2. Histórico: usa cache se sessão completa, senão busca do servidor
   let historico = carregarHistoricoLocal();
+
   if (!historico) {
     try {
-      // Se resultados também está vazio, busca tudo junto com getSummary
-      if (resultados.length === 0) {
-        const res  = await fetch(`${APP_URL}?action=getSummary`, { method: 'GET' });
-        const data = await res.json();
-        if (data.avaliacoes && data.avaliacoes.length > 0) {
-          resultados = data.avaliacoes.map(a => ({ id: a.id, avaliacao: a.avaliacao }));
-          salvarResultadosLocal();
-        }
-        historico = data.historico || [];
-      } else {
-        // Tem resultados locais, só busca histórico
-        const res  = await fetch(`${APP_URL}?action=getHistorico`, { method: 'GET' });
-        const data = await res.json();
-        historico = data.historico || [];
+      const data = summaryPreCarregado || await fetch(`${APP_URL}?action=getSummary`).then(r => r.json());
+      if (data.avaliacoes && data.avaliacoes.length > 0) {
+        resultados = data.avaliacoes.map(a => ({ id: a.id, avaliacao: a.avaliacao }));
       }
+      historico = data.historico || [];
       salvarHistoricoLocal(historico);
-      marcarSessaoCompleta();
     } catch (e) {
       historico = [];
     }
