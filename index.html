@@ -31,37 +31,28 @@
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
-  html { height: 100%; background: var(--bg); }
-
-  body {
+  html, body {
     height: 100%;
     background: var(--bg);
     color: var(--text);
     font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
     font-size: 20px;
-    touch-action: manipulation;
   }
 
   .screen {
-    position: fixed;
+    position: absolute;
     inset: 0;
     display: flex;
     flex-direction: column;
-    padding-top: max(16px, env(safe-area-inset-top));
-    padding-left: 20px;
-    padding-right: 20px;
-    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    padding: env(safe-area-inset-top, 16px) 20px env(safe-area-inset-bottom, 16px);
     opacity: 0;
     pointer-events: none;
     transition: opacity .3s ease;
   }
   .screen.active { opacity: 1; pointer-events: all; }
-
-  #screen-review {
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: contain;
-  }
 
   .btn {
     border: none;
@@ -84,7 +75,6 @@
     padding: 14px;
   }
 
-  /* ── Loading ── */
   #screen-loading { justify-content: center; align-items: center; gap: 20px; text-align: center; }
   .spinner {
     width: 48px; height: 48px;
@@ -96,7 +86,8 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   #screen-loading p { color: var(--text-muted); font-size: 20px; }
 
-  /* ── Header da revisão ── */
+  #screen-review { gap: 0; padding-bottom: 0; overflow-y: auto; }
+
   .review-header {
     display: flex;
     align-items: center;
@@ -135,16 +126,12 @@
     background: linear-gradient(90deg, var(--orange), #f5d623);
   }
 
-  /* ── Card ──
-     CORREÇÃO iOS: removemos transform-style: preserve-3d do container.
-     Agora cada face é animada individualmente com rotateY + opacity,
-     sem compartilhar contexto 3D — isso permite overflow-y: scroll
-     funcionar corretamente no WebKit/iOS. */
   .card-area {
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    perspective: 1200px;
     padding: 8px 0;
   }
 
@@ -153,10 +140,11 @@
     max-width: 440px;
     height: 540px;
     position: relative;
-    /* SEM transform-style: preserve-3d aqui */
+    transform-style: preserve-3d;
+    transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
   }
-
-  /* Animações de entrada/saída lateral (substituem as classes exit/enter) */
+  .flip-card.flipped { transform: rotateY(180deg); }
   .flip-card.exit-left {
     transform: translateX(-80px) rotate(-5deg);
     opacity: 0;
@@ -178,7 +166,6 @@
     transition: none;
   }
 
-  /* Cada face é posicionada absolutamente e animada de forma independente */
   .card-face {
     position: absolute;
     inset: 0;
@@ -188,49 +175,20 @@
     padding: 24px 28px;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: space-between;
     gap: 12px;
-    /* CORREÇÃO iOS: overflow-y scroll funciona porque não há preserve-3d ancestral */
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    /* Transição individual de cada face */
-    transition: opacity 0.28s ease, transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
-    /* Garante que a face "de trás" não receba toques */
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-  }
-
-  /* Estado inicial: frente visível, verso escondido (virado 180°) */
-  .card-front {
-    opacity: 1;
-    transform: rotateY(0deg);
-    z-index: 2;
-    pointer-events: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
   }
   .card-back {
+    transform: rotateY(180deg);
     background: var(--surface2);
     border-color: var(--accent);
     justify-content: center;
-    opacity: 0;
-    transform: rotateY(180deg);
-    z-index: 1;
-    pointer-events: none;
   }
-
-  /* Estado virado: frente some, verso aparece */
-  .flip-card.flipped .card-front {
-    opacity: 0;
-    transform: rotateY(-180deg);
-    pointer-events: none;
-    z-index: 1;
-  }
-  .flip-card.flipped .card-back {
-    opacity: 1;
-    transform: rotateY(0deg);
-    pointer-events: auto;
-    z-index: 2;
-  }
-
   .card-face-content {
     font-size: 24px;
     line-height: 1.5;
@@ -243,7 +201,15 @@
     font-size: 36px;
     color: var(--accent);
   }
-
+  .card-tap-hint {
+    font-size: 15px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    justify-content: center;
+  }
   .card-badge {
     display: inline-flex;
     align-items: center;
@@ -253,7 +219,6 @@
     padding: 5px 12px;
     border-radius: 20px;
     width: fit-content;
-    flex-shrink: 0;
   }
   .badge-novo { background: var(--accent-dim); color: var(--accent); }
   .badge-revisao { background: var(--green-bg); color: var(--green); }
@@ -268,10 +233,8 @@
     margin: 8px auto 0;
     display: block;
     cursor: zoom-in;
-    flex-shrink: 0;
   }
 
-  /* ── Lightbox ── */
   #lightbox {
     display: none;
     position: fixed;
@@ -290,37 +253,13 @@
     border-radius: var(--radius-sm);
   }
 
-  /* ── Zona de ação ── */
-  .action-zone {
-    flex-shrink: 0;
-    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
-  }
-
-  .btn-virar {
-    border: none;
-    border-radius: var(--radius);
-    padding: 20px 18px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 22px;
-    font-weight: 600;
-    cursor: pointer;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    background: var(--accent-dim);
-    color: var(--accent);
-    border: 1.5px solid var(--accent);
-    transition: transform .15s, filter .15s, opacity .15s;
-  }
-  .btn-virar:active { transform: scale(0.97); filter: brightness(1.2); }
-  .btn-virar .virar-icon { font-size: 24px; }
-
   .eval-buttons {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
+    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
+    flex-shrink: 0;
+    transition: opacity .3s ease;
   }
   .eval-buttons.hidden { display: none; }
 
@@ -348,9 +287,13 @@
   .nav-buttons {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
     gap: 10px;
+    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
+    flex-shrink: 0;
+    transition: opacity .3s ease;
   }
-  .nav-buttons.hidden { display: none; }
+  .nav-buttons.hidden  { display: none; }
 
   .btn-nav {
     border: 1.5px solid var(--orange-border);
@@ -372,15 +315,17 @@
   .btn-nav .nav-label { font-size: 18px; }
   .btn-nav:disabled { opacity: 0.3; pointer-events: none; }
 
-  .nav-sair { padding-top: 10px; }
-  .nav-sair.hidden { display: none; }
+  .nav-sair {
+    padding: 0 0 max(16px, env(safe-area-inset-bottom));
+    flex-shrink: 0;
+    transition: opacity .3s ease;
+  }
+  .nav-sair.hidden { opacity: 0; pointer-events: none; }
 
-  /* ── Resumo ── */
   #screen-summary {
     gap: 14px;
     padding-top: 32px;
     overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
   }
 
   .summary-header { text-align: center; flex-shrink: 0; }
@@ -494,13 +439,13 @@
   <div class="progress-bar">
     <div class="progress-fill" id="progress-fill" style="width:0%"></div>
   </div>
-
   <div class="card-area">
-    <div class="flip-card" id="flip-card">
+    <div class="flip-card" id="flip-card" onclick="virarCard()">
       <div class="card-face card-front">
         <div class="card-badge" id="card-badge-front"></div>
         <div class="card-face-content" id="card-tema">—</div>
         <img class="card-img" id="card-img-tema" src="" alt="" style="display:none" onclick="abrirLightbox(event, this.src)">
+        <div class="card-tap-hint">👆 TOQUE PARA SABER MAIS 👆</div>
       </div>
       <div class="card-face card-back">
         <div class="card-face-content" id="card-text">—</div>
@@ -508,44 +453,28 @@
       </div>
     </div>
   </div>
-
-  <div class="action-zone">
-
-    <button class="btn-virar" id="btn-virar" onclick="virarCard()">
-      <span class="virar-icon">↩️</span>
-      VIRAR FLASHCARD
+  <div class="eval-buttons hidden" id="eval-buttons">
+    <button class="btn-eval btn-nao-lembrei" onclick="avaliar('nao')">
+      <span class="eval-icon">✕</span>
+      <span class="eval-label">Não lembrei</span>
     </button>
-
-    <div class="eval-buttons hidden" id="eval-buttons">
-      <button class="btn-eval btn-nao-lembrei" onclick="avaliar('nao')">
-        <span class="eval-icon">✕</span>
-        <span class="eval-label">NÃO LEMBREI</span>
-      </button>
-      <button class="btn-eval btn-lembrei" onclick="avaliar('sim')">
-        <span class="eval-icon">✓</span>
-        <span class="eval-label">LEMBREI</span>
-      </button>
-      <button class="btn-virar btn-desvirar" onclick="virarCard()" style="grid-column: span 2; margin-top: 2px;">
-        <span class="virar-icon">↩️</span>
-        DESVIRAR FLASHCARD
-      </button>
-    </div>
-
-    <div class="nav-buttons hidden" id="nav-buttons">
-      <button class="btn-nav" id="btn-anterior" onclick="navegarTreino(-1)">
-        <span class="nav-icon">←</span>
-        <span class="nav-label">Anterior</span>
-      </button>
-      <button class="btn-nav" id="btn-proximo" onclick="navegarTreino(1)">
-        <span class="nav-icon">→</span>
-        <span class="nav-label">Próximo</span>
-      </button>
-    </div>
-
-    <div class="nav-sair hidden" id="nav-sair">
-      <button class="btn btn-ghost" onclick="sairDoTreino()">Sair do treino</button>
-    </div>
-
+    <button class="btn-eval btn-lembrei" onclick="avaliar('sim')">
+      <span class="eval-icon">✓</span>
+      <span class="eval-label">Lembrei</span>
+    </button>
+  </div>
+  <div class="nav-buttons hidden" id="nav-buttons">
+    <button class="btn-nav" id="btn-anterior" onclick="navegarTreino(-1)">
+      <span class="nav-icon">←</span>
+      <span class="nav-label">Anterior</span>
+    </button>
+    <button class="btn-nav" id="btn-proximo" onclick="navegarTreino(1)">
+      <span class="nav-icon">→</span>
+      <span class="nav-label">Próximo</span>
+    </button>
+  </div>
+  <div class="nav-sair hidden" id="nav-sair">
+    <button class="btn btn-ghost" onclick="sairDoTreino()">Sair do treino</button>
   </div>
 </div>
 
@@ -557,11 +486,11 @@
   <div class="summary-stats">
     <div class="stat-card">
       <div class="stat-number green" id="stat-lembrei">0</div>
-      <div class="stat-label">LEMBREI</div>
+      <div class="stat-label">Lembrei</div>
     </div>
     <div class="stat-card">
       <div class="stat-number red" id="stat-nao">0</div>
-      <div class="stat-label">NÃO LEMBREI</div>
+      <div class="stat-label">Não lembrei</div>
     </div>
   </div>
   <div class="summary-pct">
@@ -597,6 +526,7 @@
 <script>
 const APP_URL = 'https://script.google.com/macros/s/AKfycbymffK7phd3WRnxArNHXTlXJu23RdJtGSGncxAXq8kY520l_5wUEyeb91koMij4ask1xQ/exec';
 
+// ── Chaves do localStorage ──
 const LS_HISTORICO = 'revisao_historico';
 const LS_HIST_DATA = 'revisao_historico_data';
 
@@ -627,6 +557,9 @@ function carregarHistoricoLocal() {
   catch { return null; }
 }
 
+// ───────────────────────────────────────────────────────────────
+// NAVEGAÇÃO DE TELAS
+// ───────────────────────────────────────────────────────────────
 function mostrarTela(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -641,6 +574,9 @@ function embaralhar(arr) {
   return a;
 }
 
+// ───────────────────────────────────────────────────────────────
+// CARREGAMENTO INICIAL
+// ───────────────────────────────────────────────────────────────
 async function carregarItens() {
   mostrarTela('screen-loading');
   document.getElementById('loading-msg').textContent = 'Carregando itens do dia…';
@@ -653,6 +589,7 @@ async function carregarItens() {
     const dataItens   = await resItens.json();
     const dataSummary = await resSummary.json();
 
+    // Resultados vêm sempre do servidor
     resultados = (dataSummary.avaliacoes || []).map(a => ({ id: a.id, avaliacao: a.avaliacao }));
 
     if (dataItens.itens && dataItens.itens.length > 0) {
@@ -704,7 +641,6 @@ async function carregarTreino() {
     itens = embaralhar(pendentes);
     idsVistosTreino = vistos;
     idx = 0;
-    resultados = [];
     modoTreino = true;
     iniciarRevisao();
   } catch (e) {
@@ -712,7 +648,10 @@ async function carregarTreino() {
   }
 }
 
-function mostrarDiaLivre() {
+// ───────────────────────────────────────────────────────────────
+// TELAS ESPECIAIS
+// ───────────────────────────────────────────────────────────────
+function mostrarDiaLivre(dataSummary) {
   mostrarTela('screen-summary');
   document.getElementById('stat-lembrei').textContent = '—';
   document.getElementById('stat-nao').textContent = '—';
@@ -724,7 +663,9 @@ function mostrarDiaLivre() {
   document.getElementById('sync-status').innerHTML = '';
   document.getElementById('btn-nova-rodada').textContent = '🎯 Entrar no modo treino';
   document.getElementById('btn-nova-rodada').dataset.action = 'treino';
-  renderizarHistorico(carregarHistoricoLocal() || []);
+  const historico = (dataSummary && dataSummary.historico) || carregarHistoricoLocal() || [];
+  renderizarHistorico(historico);
+  if (dataSummary && dataSummary.historico) salvarHistoricoLocal(dataSummary.historico);
 }
 
 function mostrarResumoVazio() {
@@ -741,6 +682,9 @@ function mostrarResumoVazio() {
   document.getElementById('bloco-historico').style.display = 'none';
 }
 
+// ───────────────────────────────────────────────────────────────
+// REVISÃO
+// ───────────────────────────────────────────────────────────────
 function iniciarRevisao() {
   mostrarTela('screen-review');
   document.getElementById('treino-badge').style.display = modoTreino ? 'block' : 'none';
@@ -794,10 +738,6 @@ function atualizarCard(animar, direcao) {
     badgeFront.textContent = `🔁 ${rev}ª revisão`;
   }
 
-  // Reset dos botões
-  cardVirado = false;
-  animando   = false;
-  document.getElementById('btn-virar').style.display   = '';
   document.getElementById('eval-buttons').classList.add('hidden');
   document.getElementById('nav-buttons').classList.add('hidden');
   document.getElementById('nav-sair').classList.add('hidden');
@@ -806,75 +746,58 @@ function atualizarCard(animar, direcao) {
     document.getElementById('btn-anterior').disabled = idx === 0;
   }
 
+  cardVirado = false;
   const flipCard = document.getElementById('flip-card');
-
-  // Remove estado virado (garante que a frente aparece)
-  flipCard.classList.remove('flipped');
 
   if (animar) {
     const enterClass = direcao === 'right' ? 'enter-right' : 'enter-left';
     flipCard.classList.add(enterClass);
-    void flipCard.offsetWidth; // força reflow
+    flipCard.classList.remove('flipped');
+    void flipCard.offsetWidth;
     setTimeout(() => {
       flipCard.classList.remove(enterClass);
       flipCard.style.transition = '';
     }, 30);
   } else {
-    // Sem animação: reseta qualquer transform residual
+    flipCard.classList.remove('flipped');
     flipCard.style.transition = 'none';
     void flipCard.offsetWidth;
     flipCard.style.transition = '';
   }
-
-  // Rola as duas faces de volta ao topo ao trocar de card
-  document.querySelector('.card-front').scrollTop = 0;
-  document.querySelector('.card-back').scrollTop  = 0;
 }
 
 function virarCard() {
-  if (animando) return;
+  if (animando) return; // ← BLOQUEIA DUPLO CLIQUE
+  animando = true;      // ← INICIA LOCK
 
   const flipCard = document.getElementById('flip-card');
+  const evalBtns = document.getElementById('eval-buttons');
+  const navBtns  = document.getElementById('nav-buttons');
 
   if (!cardVirado) {
-    // Frente → verso
-    animando = true;
     cardVirado = true;
     flipCard.classList.add('flipped');
-
-    document.getElementById('btn-virar').style.display = 'none';
-
-    // Aguarda a transição CSS das faces (550ms) antes de mostrar botões
     setTimeout(() => {
+      animando = false; // ← LIBERA APÓS ANIMAÇÃO
       if (modoTreino) {
-        document.getElementById('nav-buttons').classList.remove('hidden');
+        navBtns.classList.remove('hidden');
         document.getElementById('nav-sair').classList.remove('hidden');
       } else {
-        document.getElementById('eval-buttons').classList.remove('hidden');
+        evalBtns.classList.remove('hidden');
       }
-      animando = false;
-    }, 550);
-
+    }, 350);
   } else {
-    // Verso → frente
-    animando = true;
+    animando = true; // ← LOCK
     cardVirado = false;
     flipCard.classList.remove('flipped');
-    document.getElementById('eval-buttons').classList.add('hidden');
-    document.getElementById('nav-buttons').classList.add('hidden');
+    evalBtns.classList.add('hidden');
+    navBtns.classList.add('hidden');
     document.getElementById('nav-sair').classList.add('hidden');
-
-    setTimeout(() => {
-      document.getElementById('btn-virar').style.display = '';
-      animando = false;
-    }, 550);
+    setTimeout(() => { animando = false; }, 550); // ← LIBERA APÓS ANIMAÇÃO
   }
 }
 
 function navegarTreino(direcao) {
-  if (animando) return;
-  animando = true;
-
   const flipCard = document.getElementById('flip-card');
   document.getElementById('nav-buttons').classList.add('hidden');
   document.getElementById('nav-sair').classList.add('hidden');
@@ -891,7 +814,6 @@ function navegarTreino(direcao) {
   setTimeout(() => {
     flipCard.classList.remove(exitClass);
     flipCard.style.transition = '';
-    animando = false;
     const novoIdx = idx + direcao;
     if (novoIdx >= itens.length) {
       mostrarResumo();
@@ -922,9 +844,6 @@ function finalizarSessao(pct, lembrei, naoLembrei) {
 }
 
 function avaliar(resp) {
-  if (animando) return;
-  animando = true;
-
   const item      = itens[idx];
   const flipCard  = document.getElementById('flip-card');
   const evalBtns  = document.getElementById('eval-buttons');
@@ -938,6 +857,8 @@ function avaliar(resp) {
     headers: { 'Content-Type': 'text/plain' }
   }).catch(() => {});
 
+  // Grava histórico só no último item da sessão atual
+  // usa resultados completos (inclui sessões anteriores ao reload)
   const isUltimoItem = (idx + 1) >= itens.length;
   if (isUltimoItem) {
     const totalLembrei = resultados.filter(r => r.avaliacao === 'Lembrei').length;
@@ -953,13 +874,15 @@ function avaliar(resp) {
   setTimeout(() => {
     flipCard.classList.remove('exit-left');
     flipCard.style.transition = '';
-    animando = false;
     idx++;
     if (idx >= itens.length) mostrarResumo();
     else atualizarCard(true, 'right');
   }, 230);
 }
 
+// ───────────────────────────────────────────────────────────────
+// RESUMO
+// ───────────────────────────────────────────────────────────────
 async function mostrarResumo(summaryPreCarregado) {
   mostrarTela('screen-loading');
   document.getElementById('loading-msg').textContent = 'Calculando aproveitamento…';
@@ -969,9 +892,6 @@ async function mostrarResumo(summaryPreCarregado) {
   if (!historico) {
     try {
       const data = summaryPreCarregado || await fetch(`${APP_URL}?action=getSummary`).then(r => r.json());
-      if (data.avaliacoes && data.avaliacoes.length > 0) {
-        resultados = data.avaliacoes.map(a => ({ id: a.id, avaliacao: a.avaliacao }));
-      }
       historico = data.historico || [];
       salvarHistoricoLocal(historico);
     } catch (e) {
@@ -1020,6 +940,9 @@ async function mostrarResumo(summaryPreCarregado) {
   }, 100);
 }
 
+// ───────────────────────────────────────────────────────────────
+// HISTÓRICO
+// ───────────────────────────────────────────────────────────────
 function renderizarHistorico(historico) {
   const bloco = document.getElementById('bloco-historico');
   if (!historico || historico.length === 0) {
