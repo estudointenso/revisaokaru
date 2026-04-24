@@ -834,16 +834,16 @@ function registrarVistoTreino(id) {
   }).catch(() => {});
 }
 
-function finalizarSessao(pct, lembrei, naoLembrei) {
+async function finalizarSessao(pct, lembrei, naoLembrei) {
   if (modoTreino) return;
-  fetch(APP_URL, {
+  await fetch(APP_URL, {
     method: 'POST',
     body: JSON.stringify({ action: 'finalizarSessao', pct, lembrei, naoLembrei }),
     headers: { 'Content-Type': 'text/plain' }
   }).catch(() => {});
 }
 
-function avaliar(resp) {
+async function avaliar(resp) {
   const item      = itens[idx];
   const flipCard  = document.getElementById('flip-card');
   const evalBtns  = document.getElementById('eval-buttons');
@@ -864,7 +864,9 @@ function avaliar(resp) {
     const totalLembrei = resultados.filter(r => r.avaliacao === 'Lembrei').length;
     const totalNao     = resultados.filter(r => r.avaliacao === 'Não lembrei').length;
     const totalPct     = Math.round((totalLembrei / resultados.length) * 100);
-    finalizarSessao(totalPct, totalLembrei, totalNao);
+    await finalizarSessao(totalPct, totalLembrei, totalNao);
+    localStorage.removeItem('revisao_historico');
+    localStorage.removeItem('revisao_historico_data');
   }
 
   evalBtns.classList.add('hidden');
