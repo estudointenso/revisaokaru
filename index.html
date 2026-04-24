@@ -431,6 +431,16 @@
   <p id="loading-msg">Carregando itens do dia…</p>
 </div>
 
+<div class="screen" id="screen-inicio">
+  <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:24px;">
+    <h2 style="font-family:'DM Serif Display',serif; font-size:48px; color:var(--accent);">Revisão Daniel</h2>
+    <p style="color:var(--text-muted); font-size:20px;" id="inicio-data"></p>
+  </div>
+  <div style="padding-bottom: max(16px, env(safe-area-inset-bottom));">
+    <button class="btn btn-primary" onclick="iniciarRevisaoDiaria()">📖 Revisar</button>
+  </div>
+</div>
+
 <div class="screen" id="screen-review">
   <div class="review-header">
     <div class="review-counter"><span id="counter-atual">1</span> de <span id="counter-total">0</span></div>
@@ -513,7 +523,6 @@
   </div>
   <div class="summary-syncing" id="sync-status"></div>
   <div class="summary-actions">
-    <button class="btn btn-primary" id="btn-revisar" onclick="iniciarRevisaoDiaria()" style="display:none">📖 Revisar</button>
     <button class="btn btn-primary" id="btn-nova-rodada" onclick="novaRodada()">🎯 Entrar no modo treino</button>
   </div>
 </div>
@@ -591,71 +600,15 @@ async function carregarItens() {
     const dataSummary = await resSummary.json();
 
     resultados = (dataSummary.avaliacoes || []).map(a => ({ id: a.id, avaliacao: a.avaliacao }));
+    itens = dataItens.itens || [];
+    idx = 0;
+    modoTreino = false;
 
-    if (dataItens.itens && dataItens.itens.length > 0) {
-      itens = dataItens.itens;
-      idx = 0;
-      modoTreino = false;
-      mostrarTela('screen-summary');
-      await renderizarResumoInicial(dataSummary);
-    } else {
-      await mostrarResumo(dataSummary);
-    }
+    document.getElementById('inicio-data').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+    mostrarTela('screen-inicio');
   } catch (e) {
     location.reload();
   }
-}
-
-async function renderizarResumoInicial(dataSummary) {
-  const lembrei = resultados.filter(r => r.avaliacao === 'Lembrei').length;
-  const nao     = resultados.filter(r => r.avaliacao === 'Não lembrei').length;
-  const total   = resultados.length;
-  const pct     = total > 0 ? Math.round((lembrei / total) * 100) : 0;
-
-  document.getElementById('stat-lembrei').textContent = total > 0 ? lembrei : '—';
-  document.getElementById('stat-nao').textContent     = total > 0 ? nao     : '—';
-  document.getElementById('pct-valor').textContent    = total > 0 ? pct + '%' : '—';
-  document.getElementById('summary-data').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-
-  let emoji = '✅', msg = '';
-  if (total === 0) {
-    emoji = '📚'; msg = 'Você ainda não revisou hoje. Clique em Revisar!';
-  } else if (pct >= 90) { emoji = '🔥'; msg = 'Excelente! Você está dominando o conteúdo.'; }
-  else if (pct >= 70)   { emoji = '✅'; msg = 'Ótimo desempenho! Continue assim.'; }
-  else if (pct >= 50)   { emoji = '💪'; msg = 'Bom esforço. Os itens difíceis voltarão em breve.'; }
-  else                  { emoji = '📚'; msg = 'Não desanime! A repetição vai consolidar o conteúdo.'; }
-
-  document.getElementById('summary-emoji').textContent = emoji + (total > 0 ? ' Revisão concluída!' : ' Bora revisar!');
-  document.getElementById('pct-msg').textContent = msg;
-  document.getElementById('sync-status').innerHTML = total > 0
-    ? '<span style="color:var(--green)">✓ Itens salvos automaticamente</span>' : '';
-
-  const barEl = document.getElementById('pct-bar');
-  const barColor = pct < 50 ? '#ff5f6d' : pct < 75 ? '#f5a623' : '#2ecc8a';
-  barEl.style.background = barColor;
-  barEl.style.transition = 'none';
-  barEl.style.width = '0%';
-
-  // Botão Revisar
-  const btnRevisar = document.getElementById('btn-revisar');
-  btnRevisar.style.display = 'block';
-  btnRevisar.textContent = '📖 Revisar';
-
-  document.getElementById('btn-nova-rodada').textContent = '🎯 Entrar no modo treino';
-  document.getElementById('btn-nova-rodada').dataset.action = 'treino';
-
-  let historico = carregarHistoricoLocal();
-  if (!historico) {
-    historico = dataSummary.historico || [];
-    salvarHistoricoLocal(historico);
-  }
-  renderizarHistorico(historico);
-
-  mostrarTela('screen-summary');
-  setTimeout(() => {
-    barEl.style.transition = 'width 1s ease';
-    barEl.style.width = (total > 0 ? pct : 0) + '%';
-  }, 100);
 }
 
 async function carregarTreino() {
@@ -966,7 +919,6 @@ async function mostrarResumo(summaryPreCarregado) {
   barEl.style.width      = '0%';
 
   renderizarHistorico(historico);
-  document.getElementById('btn-revisar').style.display = 'none';
 
   mostrarTela('screen-summary');
   setTimeout(() => {
@@ -1036,11 +988,9 @@ function sairDoTreino() {
 
 function iniciarRevisaoDiaria() {
   if (!itens || itens.length === 0) {
-    alert('Você já revisou todos os itens de hoje!');
+    mostrarResumo();
     return;
   }
-  idx = 0;
-  modoTreino = false;
   iniciarRevisao();
 }
 
