@@ -513,7 +513,8 @@
   </div>
   <div class="summary-syncing" id="sync-status"></div>
   <div class="summary-actions">
-    <button class="btn btn-primary" id="btn-nova-rodada" onclick="novaRodada()">Revisar novamente hoje</button>
+    <button class="btn btn-primary" id="btn-revisar" onclick="iniciarRevisaoDiaria()" style="display:none">📖 Revisar</button>
+    <button class="btn btn-primary" id="btn-nova-rodada" onclick="novaRodada()">🎯 Entrar no modo treino</button>
   </div>
 </div>
 
@@ -581,34 +582,80 @@ async function carregarItens() {
   mostrarTela('screen-loading');
   document.getElementById('loading-msg').textContent = 'Carregando itens do dia…';
 
-  const reloadTimer = setTimeout(() => location.reload(), 7000);
-
   try {
-    const resItens = await fetch(`${APP_URL}?action=getItens`, { method: 'GET' });
-    const dataItens = await resItens.json();
-    clearTimeout(reloadTimer);
+    const [resItens, resSummary] = await Promise.all([
+      fetch(`${APP_URL}?action=getItens`, { method: 'GET' }),
+      fetch(`${APP_URL}?action=getSummary`, { method: 'GET' })
+    ]);
+    const dataItens   = await resItens.json();
+    const dataSummary = await resSummary.json();
+
+    resultados = (dataSummary.avaliacoes || []).map(a => ({ id: a.id, avaliacao: a.avaliacao }));
 
     if (dataItens.itens && dataItens.itens.length > 0) {
-      resultados = [];
       itens = dataItens.itens;
       idx = 0;
       modoTreino = false;
-      iniciarRevisao();
+      mostrarTela('screen-summary');
+      await renderizarResumoInicial(dataSummary);
     } else {
-      const resSummary = await fetch(`${APP_URL}?action=getSummary`, { method: 'GET' });
-      const dataSummary = await resSummary.json();
-      resultados = (dataSummary.avaliacoes || []).map(a => ({ id: a.id, avaliacao: a.avaliacao }));
-
-      if (resultados.length > 0) {
-        await mostrarResumo(dataSummary);
-      } else {
-        mostrarDiaLivre(dataSummary);
-      }
+      await mostrarResumo(dataSummary);
     }
   } catch (e) {
-    clearTimeout(reloadTimer);
     location.reload();
   }
+}
+
+async function renderizarResumoInicial(dataSummary) {
+  const lembrei = resultados.filter(r => r.avaliacao === 'Lembrei').length;
+  const nao     = resultados.filter(r => r.avaliacao === 'Não lembrei').length;
+  const total   = resultados.length;
+  const pct     = total > 0 ? Math.round((lembrei / total) * 100) : 0;
+
+  document.getElementById('stat-lembrei').textContent = total > 0 ? lembrei : '—';
+  document.getElementById('stat-nao').textContent     = total > 0 ? nao     : '—';
+  document.getElementById('pct-valor').textContent    = total > 0 ? pct + '%' : '—';
+  document.getElementById('summary-data').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  let emoji = '✅', msg = '';
+  if (total === 0) {
+    emoji = '📚'; msg = 'Você ainda não revisou hoje. Clique em Revisar!';
+  } else if (pct >= 90) { emoji = '🔥'; msg = 'Excelente! Você está dominando o conteúdo.'; }
+  else if (pct >= 70)   { emoji = '✅'; msg = 'Ótimo desempenho! Continue assim.'; }
+  else if (pct >= 50)   { emoji = '💪'; msg = 'Bom esforço. Os itens difíceis voltarão em breve.'; }
+  else                  { emoji = '📚'; msg = 'Não desanime! A repetição vai consolidar o conteúdo.'; }
+
+  document.getElementById('summary-emoji').textContent = emoji + (total > 0 ? ' Revisão concluída!' : ' Bora revisar!');
+  document.getElementById('pct-msg').textContent = msg;
+  document.getElementById('sync-status').innerHTML = total > 0
+    ? '<span style="color:var(--green)">✓ Itens salvos automaticamente</span>' : '';
+
+  const barEl = document.getElementById('pct-bar');
+  const barColor = pct < 50 ? '#ff5f6d' : pct < 75 ? '#f5a623' : '#2ecc8a';
+  barEl.style.background = barColor;
+  barEl.style.transition = 'none';
+  barEl.style.width = '0%';
+
+  // Botão Revisar
+  const btnRevisar = document.getElementById('btn-revisar');
+  btnRevisar.style.display = 'block';
+  btnRevisar.textContent = '📖 Revisar';
+
+  document.getElementById('btn-nova-rodada').textContent = '🎯 Entrar no modo treino';
+  document.getElementById('btn-nova-rodada').dataset.action = 'treino';
+
+  let historico = carregarHistoricoLocal();
+  if (!historico) {
+    historico = dataSummary.historico || [];
+    salvarHistoricoLocal(historico);
+  }
+  renderizarHistorico(historico);
+
+  mostrarTela('screen-summary');
+  setTimeout(() => {
+    barEl.style.transition = 'width 1s ease';
+    barEl.style.width = (total > 0 ? pct : 0) + '%';
+  }, 100);
 }
 
 async function carregarTreino() {
@@ -652,22 +699,6 @@ async function carregarTreino() {
 // ───────────────────────────────────────────────────────────────
 // TELAS ESPECIAIS
 // ───────────────────────────────────────────────────────────────
-function mostrarDiaLivre(dataSummary) {
-  mostrarTela('screen-summary');
-  document.getElementById('stat-lembrei').textContent = '—';
-  document.getElementById('stat-nao').textContent = '—';
-  document.getElementById('pct-valor').textContent = '—';
-  document.getElementById('summary-emoji').textContent = '🎉 Dia livre!';
-  document.getElementById('summary-data').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-  document.getElementById('pct-msg').textContent = 'Nenhum item para revisar hoje. Volte amanhã!';
-  document.getElementById('pct-bar').style.width = '100%';
-  document.getElementById('sync-status').innerHTML = '';
-  document.getElementById('btn-nova-rodada').textContent = '🎯 Entrar no modo treino';
-  document.getElementById('btn-nova-rodada').dataset.action = 'treino';
-  const historico = (dataSummary && dataSummary.historico) || carregarHistoricoLocal() || [];
-  renderizarHistorico(historico);
-  if (dataSummary && dataSummary.historico) salvarHistoricoLocal(dataSummary.historico);
-}
 
 function mostrarResumoVazio() {
   mostrarTela('screen-summary');
@@ -935,6 +966,7 @@ async function mostrarResumo(summaryPreCarregado) {
   barEl.style.width      = '0%';
 
   renderizarHistorico(historico);
+  document.getElementById('btn-revisar').style.display = 'none';
 
   mostrarTela('screen-summary');
   setTimeout(() => {
@@ -1000,6 +1032,16 @@ function renderizarHistorico(historico) {
 
 function sairDoTreino() {
   mostrarResumo();
+}
+
+function iniciarRevisaoDiaria() {
+  if (!itens || itens.length === 0) {
+    alert('Você já revisou todos os itens de hoje!');
+    return;
+  }
+  idx = 0;
+  modoTreino = false;
+  iniciarRevisao();
 }
 
 async function novaRodada() {
