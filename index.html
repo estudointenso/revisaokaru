@@ -577,14 +577,16 @@ function embaralhar(arr) {
 // ───────────────────────────────────────────────────────────────
 // CARREGAMENTO INICIAL
 // ───────────────────────────────────────────────────────────────
-async function carregarItens(tentativa = 0) {
+async function carregarItens() {
   mostrarTela('screen-loading');
-  document.getElementById('loading-msg').textContent = tentativa === 0 
-    ? 'Carregando itens do dia…' 
-    : `Reconectando... (tentativa ${tentativa}/2)`;
+  document.getElementById('loading-msg').textContent = 'Carregando itens do dia…';
+
+  const reloadTimer = setTimeout(() => location.reload(), 7000);
+
   try {
     const resItens = await fetch(`${APP_URL}?action=getItens`, { method: 'GET' });
     const dataItens = await resItens.json();
+    clearTimeout(reloadTimer);
 
     if (dataItens.itens && dataItens.itens.length > 0) {
       resultados = [];
@@ -604,13 +606,8 @@ async function carregarItens(tentativa = 0) {
       }
     }
   } catch (e) {
-    if (tentativa < 2) {
-      document.getElementById('loading-msg').textContent = `Reconectando... (tentativa ${tentativa + 1}/2)`;
-      setTimeout(() => carregarItens(tentativa + 1), 3000);
-    } else {
-      alert('Servidor demorando a responder. Verifique sua conexão e tente novamente.');
-      mostrarTela('screen-loading');
-    }
+    clearTimeout(reloadTimer);
+    location.reload();
   }
 }
 
