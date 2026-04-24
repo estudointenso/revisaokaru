@@ -577,27 +577,26 @@ function embaralhar(arr) {
 // ───────────────────────────────────────────────────────────────
 // CARREGAMENTO INICIAL
 // ───────────────────────────────────────────────────────────────
-async function carregarItens() {
+async function carregarItens(tentativa = 0) {
   mostrarTela('screen-loading');
-  document.getElementById('loading-msg').textContent = 'Carregando itens do dia…';
+  document.getElementById('loading-msg').textContent = tentativa === 0 
+    ? 'Carregando itens do dia…' 
+    : `Reconectando... (tentativa ${tentativa}/2)`;
   try {
-    const [resItens, resSummary] = await Promise.all([
-      fetch(`${APP_URL}?action=getItens`, { method: 'GET' }),
-      fetch(`${APP_URL}?action=getSummary`, { method: 'GET' })
-    ]);
-
-    const dataItens   = await resItens.json();
-    const dataSummary = await resSummary.json();
-
-    // Resultados vêm sempre do servidor
-    resultados = (dataSummary.avaliacoes || []).map(a => ({ id: a.id, avaliacao: a.avaliacao }));
+    const resItens = await fetch(`${APP_URL}?action=getItens`, { method: 'GET' });
+    const dataItens = await resItens.json();
 
     if (dataItens.itens && dataItens.itens.length > 0) {
+      resultados = [];
       itens = dataItens.itens;
       idx = 0;
       modoTreino = false;
       iniciarRevisao();
     } else {
+      const resSummary = await fetch(`${APP_URL}?action=getSummary`, { method: 'GET' });
+      const dataSummary = await resSummary.json();
+      resultados = (dataSummary.avaliacoes || []).map(a => ({ id: a.id, avaliacao: a.avaliacao }));
+
       if (resultados.length > 0) {
         await mostrarResumo(dataSummary);
       } else {
@@ -605,8 +604,13 @@ async function carregarItens() {
       }
     }
   } catch (e) {
-    alert('Erro ao conectar com o Apps Script.\n\nVerifique:\n• Permissões configuradas como "Qualquer pessoa"\n• Planilha tem itens com "Status = Ativo"');
-    mostrarTela('screen-loading');
+    if (tentativa < 2) {
+      document.getElementById('loading-msg').textContent = `Reconectando... (tentativa ${tentativa + 1}/2)`;
+      setTimeout(() => carregarItens(tentativa + 1), 3000);
+    } else {
+      alert('Servidor demorando a responder. Verifique sua conexão e tente novamente.');
+      mostrarTela('screen-loading');
+    }
   }
 }
 
