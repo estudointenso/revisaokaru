@@ -422,6 +422,15 @@
     font-size: 18px; opacity: 0; transition: all .3s ease; white-space: nowrap; z-index: 100;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  #block-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+  }
+  #block-overlay.active { display: block; }
+
 </style>
 </head>
 <body>
@@ -531,6 +540,8 @@
   <img id="lightbox-img" src="" alt="">
 </div>
 
+<div id="block-overlay"></div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -571,6 +582,7 @@ function carregarHistoricoLocal() {
 // NAVEGAÇÃO DE TELAS
 // ───────────────────────────────────────────────────────────────
 function mostrarTela(id) {
+  document.getElementById('block-overlay').classList.remove('active');
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
@@ -829,6 +841,9 @@ async function finalizarSessao(pct, lembrei, naoLembrei) {
 }
 
 async function avaliar(resp) {
+  if (animando) return;
+  animando = true;
+
   const item      = itens[idx];
   const flipCard  = document.getElementById('flip-card');
   const evalBtns  = document.getElementById('eval-buttons');
@@ -842,10 +857,9 @@ async function avaliar(resp) {
     headers: { 'Content-Type': 'text/plain' }
   }).catch(() => {});
 
-  // Grava histórico só no último item da sessão atual
-  // usa resultados completos (inclui sessões anteriores ao reload)
   const isUltimoItem = (idx + 1) >= itens.length;
   if (isUltimoItem) {
+    document.getElementById('block-overlay').classList.add('active');
     const totalLembrei = resultados.filter(r => r.avaliacao === 'Lembrei').length;
     const totalNao     = resultados.filter(r => r.avaliacao === 'Não lembrei').length;
     const totalPct     = Math.round((totalLembrei / resultados.length) * 100);
@@ -861,6 +875,7 @@ async function avaliar(resp) {
   setTimeout(() => {
     flipCard.classList.remove('exit-left');
     flipCard.style.transition = '';
+    animando = false;
     idx++;
     if (idx >= itens.length) mostrarResumo();
     else atualizarCard(true, 'right');
