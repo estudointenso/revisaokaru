@@ -548,8 +548,9 @@
 const APP_URL = 'https://script.google.com/macros/s/AKfycbymffK7phd3WRnxArNHXTlXJu23RdJtGSGncxAXq8kY520l_5wUEyeb91koMij4ask1xQ/exec';
 
 // ── Chaves do localStorage ──
-const LS_HISTORICO = 'revisao_historico';
-const LS_HIST_DATA = 'revisao_historico_data';
+const APP_ID = APP_URL.split('/').slice(-2)[0]; // extrai o ID único da URL
+const LS_HISTORICO = `revisao_historico_${APP_ID}`;
+const LS_HIST_DATA = `revisao_historico_data_${APP_ID}`;
 
 let itens = [];
 let idx = 0;
