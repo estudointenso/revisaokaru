@@ -947,7 +947,6 @@ async function mostrarResumo(summaryPreCarregado) {
 // HISTÓRICO
 // ───────────────────────────────────────────────────────────────
 function renderizarHistorico(historico) {
-  historico = historico.map(h => ({ ...h, pct: h.pct <= 1 ? Math.round(h.pct * 100) : h.pct }));
   const bloco = document.getElementById('bloco-historico');
   if (!historico || historico.length === 0) {
     bloco.style.display = 'none';
