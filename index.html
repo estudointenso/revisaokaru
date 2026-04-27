@@ -903,9 +903,9 @@ async function mostrarResumo(summaryPreCarregado) {
   }
 
   const lembrei = resultados.filter(r => r.avaliacao === 'Lembrei').length;
-  const nao     = resultados.filter(r => r.avaliacao === 'Não lembrei').length;
-  const total   = resultados.length;
-  const pct     = total > 0 ? Math.round((lembrei / total) * 100) : 0;
+  const nao = resultados.filter(r => r.avaliacao === 'Não lembrei').length;
+  const total = resultados.length;
+  const pct = total > 0 ? Math.round((lembrei / total) * 100 + 0.0000001) : 0;
 
   document.getElementById('stat-lembrei').textContent = total > 0 ? lembrei : '—';
   document.getElementById('stat-nao').textContent     = total > 0 ? nao     : '—';
