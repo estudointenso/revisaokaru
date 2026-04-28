@@ -447,7 +447,7 @@
   </div>
   <div style="padding-bottom: max(16px, env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:10px;">
       <button class="btn btn-primary" onclick="iniciarRevisaoDiaria()">📖 Revisar</button>
-      <button class="btn btn-ghost" onclick="mostrarSoHistorico()">📊 Histórico</button>
+      <button class="btn btn-primary" onclick="mostrarResumo()">📊 Histórico</button>
   </div>
 </div>
 
@@ -534,7 +534,7 @@
   <div class="summary-syncing" id="sync-status"></div>
   <div class="summary-actions">
       <button class="btn btn-primary" id="btn-nova-rodada" onclick="novaRodada()">🎯 Entrar no modo treino</button>
-      <button class="btn btn-ghost" id="btn-voltar-menu" style="display:none" onclick="voltarAoMenu()">← Voltar ao menu</button>
+      <button class="btn btn-primary" id="btn-voltar-menu" style="display:none" onclick="voltarAoMenu()">← Voltar ao menu</button>
   </div>
 </div>
 
@@ -845,6 +845,8 @@ async function avaliar(resp) {
 
   const isUltimoItem = (idx + 1) >= itens.length;
   if (isUltimoItem) {
+    mostrarTela('screen-loading');
+    document.getElementById('loading-msg').textContent = 'Calculando aproveitamento…';
     document.getElementById('block-overlay').classList.add('active');
     const totalLembrei = resultados.filter(r => r.avaliacao === 'Lembrei').length;
     const totalNao     = resultados.filter(r => r.avaliacao === 'Não lembrei').length;
@@ -893,19 +895,20 @@ async function mostrarResumo(summaryPreCarregado) {
 
   let emoji = '✅', msg = '';
   if (total === 0) {
-    emoji = '🎉'; msg = 'Nenhuma revisão feita ainda hoje.';
+    emoji = '📊'; msg = 'Nenhuma revisão feita ainda hoje.';
   } else if (pct >= 90) { emoji = '🔥'; msg = 'Excelente! Você está dominando o conteúdo.'; }
   else if (pct >= 70)   { emoji = '✅'; msg = 'Ótimo desempenho! Continue assim.'; }
   else if (pct >= 50)   { emoji = '💪'; msg = 'Bom esforço. Os itens difíceis voltarão em breve.'; }
   else                  { emoji = '📚'; msg = 'Não desanime! A repetição vai consolidar o conteúdo.'; }
 
-  document.getElementById('summary-emoji').textContent = emoji + ' Revisão concluída!';
+  document.getElementById('summary-emoji').textContent = emoji + ' HISTÓRICO';
   document.getElementById('pct-msg').textContent       = msg;
   document.getElementById('sync-status').innerHTML     = total > 0
     ? '<span style="color:var(--green)">✓ Itens salvos automaticamente</span>'
     : '';
   document.getElementById('btn-nova-rodada').textContent    = '🎯 Entrar no modo treino';
   document.getElementById('btn-nova-rodada').dataset.action = 'treino';
+  document.getElementById('btn-voltar-menu').style.display = '';
 
   const barEl    = document.getElementById('pct-bar');
   const barColor = pct < 50 ? '#ff5f6d' : pct < 75 ? '#f5a623' : '#2ecc8a';
@@ -1023,33 +1026,10 @@ function fecharLightbox() {
   document.getElementById('lightbox-img').src = '';
 }
 
-async function mostrarSoHistorico() {
-  mostrarTela('screen-loading');
-  document.getElementById('loading-msg').textContent = 'Carregando histórico…';
-  try {
-    const data = await fetch(`${APP_URL}?action=getSummary`).then(r => r.json());
-    const historico = data.historico || [];
-    document.getElementById('stat-lembrei').textContent = '—';
-    document.getElementById('stat-nao').textContent = '—';
-    document.getElementById('pct-valor').textContent = '—';
-    document.getElementById('summary-emoji').textContent = '📊 Histórico';
-    document.getElementById('summary-data').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-    document.getElementById('pct-msg').textContent = '';
-    document.getElementById('sync-status').innerHTML = '';
-    document.getElementById('pct-bar').style.width = '0%';
-    document.getElementById('btn-nova-rodada').style.display = 'none';
-    document.getElementById('btn-voltar-menu').style.display = '';
-    renderizarHistorico(historico);
-    mostrarTela('screen-summary');
-  } catch (e) {
-    mostrarTela('screen-inicio');
-  }
-}
-
 function voltarAoMenu() {
   document.getElementById('btn-nova-rodada').style.display = '';
   document.getElementById('btn-voltar-menu').style.display = 'none';
-  mostrarTela('screen-inicio');
+  carregarItens();
 }
 
 window.addEventListener('load', () => { carregarItens(); });
