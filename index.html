@@ -445,8 +445,9 @@
     <h2 style="font-family:'DM Serif Display',serif; font-size:48px; color:var(--accent);">Revisão Karu</h2>
     <p style="color:var(--text-muted); font-size:20px;" id="inicio-data"></p>
   </div>
-  <div style="padding-bottom: max(16px, env(safe-area-inset-bottom));">
-    <button class="btn btn-primary" onclick="iniciarRevisaoDiaria()">📖 Revisar</button>
+  <div style="padding-bottom: max(16px, env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:10px;">
+      <button class="btn btn-primary" onclick="iniciarRevisaoDiaria()">📖 Revisar</button>
+      <button class="btn btn-ghost" onclick="mostrarSoHistorico()">📊 Histórico</button>
   </div>
 </div>
 
@@ -532,7 +533,8 @@
   </div>
   <div class="summary-syncing" id="sync-status"></div>
   <div class="summary-actions">
-    <button class="btn btn-primary" id="btn-nova-rodada" onclick="novaRodada()">🎯 Entrar no modo treino</button>
+      <button class="btn btn-primary" id="btn-nova-rodada" onclick="novaRodada()">🎯 Entrar no modo treino</button>
+      <button class="btn btn-ghost" id="btn-voltar-menu" style="display:none" onclick="voltarAoMenu()">← Voltar ao menu</button>
   </div>
 </div>
 
@@ -549,8 +551,6 @@ const APP_URL = 'https://script.google.com/macros/s/AKfycbymffK7phd3WRnxArNHXTlX
 
 // ── Chaves do localStorage ──
 const APP_ID = APP_URL.split('/').slice(-2)[0]; // extrai o ID único da URL
-const LS_HISTORICO = `revisao_historico_${APP_ID}`;
-const LS_HIST_DATA = `revisao_historico_data_${APP_ID}`;
 
 let itens = [];
 let idx = 0;
@@ -562,21 +562,6 @@ let idsVistosTreino = [];
 
 function hojeStr() {
   return new Date().toISOString().slice(0, 10);
-}
-
-function salvarHistoricoLocal(historico) {
-  localStorage.setItem(LS_HISTORICO, JSON.stringify(historico));
-  localStorage.setItem(LS_HIST_DATA, hojeStr());
-}
-
-function carregarHistoricoLocal() {
-  if (localStorage.getItem(LS_HIST_DATA) !== hojeStr()) {
-    localStorage.removeItem(LS_HISTORICO);
-    localStorage.removeItem(LS_HIST_DATA);
-    return null;
-  }
-  try { return JSON.parse(localStorage.getItem(LS_HISTORICO)); }
-  catch { return null; }
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -865,8 +850,6 @@ async function avaliar(resp) {
     const totalNao     = resultados.filter(r => r.avaliacao === 'Não lembrei').length;
     const totalPct     = Math.round((totalLembrei / resultados.length) * 100);
     await finalizarSessao(totalPct, totalLembrei, totalNao);
-    localStorage.removeItem('revisao_historico');
-    localStorage.removeItem('revisao_historico_data');
   }
 
   evalBtns.classList.add('hidden');
@@ -890,16 +873,12 @@ async function mostrarResumo(summaryPreCarregado) {
   mostrarTela('screen-loading');
   document.getElementById('loading-msg').textContent = 'Calculando aproveitamento…';
 
-  let historico = carregarHistoricoLocal();
-
-  if (!historico) {
-    try {
-      const data = summaryPreCarregado || await fetch(`${APP_URL}?action=getSummary`).then(r => r.json());
-      historico = data.historico || [];
-      salvarHistoricoLocal(historico);
-    } catch (e) {
-      historico = [];
-    }
+  let historico = [];
+  try {
+    const data = summaryPreCarregado || await fetch(`${APP_URL}?action=getSummary`).then(r => r.json());
+    historico = data.historico || [];
+  } catch (e) {
+    historico = [];
   }
 
   const lembrei = resultados.filter(r => r.avaliacao === 'Lembrei').length;
@@ -1042,6 +1021,35 @@ function abrirLightbox(e, src) {
 function fecharLightbox() {
   document.getElementById('lightbox').classList.remove('active');
   document.getElementById('lightbox-img').src = '';
+}
+
+async function mostrarSoHistorico() {
+  mostrarTela('screen-loading');
+  document.getElementById('loading-msg').textContent = 'Carregando histórico…';
+  try {
+    const data = await fetch(`${APP_URL}?action=getSummary`).then(r => r.json());
+    const historico = data.historico || [];
+    document.getElementById('stat-lembrei').textContent = '—';
+    document.getElementById('stat-nao').textContent = '—';
+    document.getElementById('pct-valor').textContent = '—';
+    document.getElementById('summary-emoji').textContent = '📊 Histórico';
+    document.getElementById('summary-data').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+    document.getElementById('pct-msg').textContent = '';
+    document.getElementById('sync-status').innerHTML = '';
+    document.getElementById('pct-bar').style.width = '0%';
+    document.getElementById('btn-nova-rodada').style.display = 'none';
+    document.getElementById('btn-voltar-menu').style.display = '';
+    renderizarHistorico(historico);
+    mostrarTela('screen-summary');
+  } catch (e) {
+    mostrarTela('screen-inicio');
+  }
+}
+
+function voltarAoMenu() {
+  document.getElementById('btn-nova-rodada').style.display = '';
+  document.getElementById('btn-voltar-menu').style.display = 'none';
+  mostrarTela('screen-inicio');
 }
 
 window.addEventListener('load', () => { carregarItens(); });
