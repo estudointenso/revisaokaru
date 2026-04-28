@@ -382,7 +382,7 @@
     display: flex;
     align-items: flex-end;
     gap: 6px;
-    height: 100px;
+    height: 200px;
     margin-top: 14px;
   }
   .hist-bar-wrap {
@@ -968,7 +968,7 @@ function renderizarHistorico(historico) {
     if (h) {
       const cor = h.pct >= 75 ? 'var(--green)' : h.pct >= 50 ? 'var(--orange)' : 'var(--red)';
       bar.style.background = cor;
-      bar.style.height     = `${Math.max(6, Math.round((h.pct / 100) * 88))}px`;
+      bar.style.height     = `${Math.max(6, Math.round((h.pct / 100) * 188))}px`;
       pctLabel.style.color = cor;
     } else {
       bar.style.background = 'var(--border)';
