@@ -431,6 +431,26 @@
   }
   #block-overlay.active { display: block; }
 
+  .img-retry-btn {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--surface2);
+    color: var(--text-muted);
+    margin: 8px auto;
+    display: block;
+    transition: transform .15s, filter .15s;
+  }
+
+  .img-retry-btn:active {
+    transform: scale(0.95);
+    filter: brightness(1.2);
+  }
+
 </style>
 </head>
 <body>
@@ -538,6 +558,18 @@
   </div>
 </div>
 
+<div class="screen" id="screen-erro">
+  <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:24px; text-align:center; padding:0 32px;">
+    <div style="font-size:64px;">⚠️</div>
+    <h2 style="font-family:'DM Serif Display',serif; font-size:32px; color:var(--text);">Falha na conexão</h2>
+    <p style="color:var(--text-muted); font-size:20px; line-height:1.5;">Verifique se sua internet está funcionando e tente novamente.</p>
+  </div>
+  <div style="padding-bottom: max(16px, env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:10px;">
+    <button class="btn btn-primary" onclick="carregarItens()">🔄 Tentar novamente</button>
+    <button class="btn btn-ghost" onclick="location.reload()">← Voltar</button>
+  </div>
+</div>
+
 <div id="lightbox" onclick="fecharLightbox()">
   <img id="lightbox-img" src="" alt="">
 </div>
@@ -580,6 +612,38 @@ function embaralhar(arr) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+function mostrarErroConexao() {
+  mostrarTela('screen-erro');
+}
+
+function configurarRetryImagem(imgElement, srcOriginal) {
+  imgElement.onerror = function() {
+    this.style.display = 'none';
+    
+    const parentContainer = this.parentElement;
+    let retryBtn = parentContainer.querySelector('.img-retry-btn');
+    
+    if (!retryBtn) {
+      retryBtn = document.createElement('button');
+      retryBtn.className = 'img-retry-btn';
+      retryBtn.innerHTML = '🔄 Tentar carregar imagem';
+      retryBtn.onclick = (e) => {
+        e.stopPropagation();
+        retryBtn.remove();
+        imgElement.style.display = 'block';
+        imgElement.src = srcOriginal + '?t=' + Date.now();
+      };
+      parentContainer.appendChild(retryBtn);
+    }
+  };
+  
+  imgElement.onload = function() {
+    this.style.display = 'block';
+    const retryBtn = this.parentElement.querySelector('.img-retry-btn');
+    if (retryBtn) retryBtn.remove();
+  };
 }
 
 // ───────────────────────────────────────────────────────────────
@@ -643,7 +707,7 @@ async function carregarTreino() {
     modoTreino = true;
     iniciarRevisao();
   } catch (e) {
-    mostrarResumoVazio();
+    mostrarErroConexao(); // ← MUDANÇA AQUI (era mostrarResumoVazio)
   }
 }
 
@@ -664,6 +728,8 @@ function mostrarResumoVazio() {
   document.getElementById('btn-nova-rodada').textContent = 'Tentar novamente';
   document.getElementById('bloco-historico').style.display = 'none';
 }
+
+
 
 // ───────────────────────────────────────────────────────────────
 // REVISÃO
@@ -688,20 +754,34 @@ function atualizarCard(animar, direcao) {
 
   const imgTema = document.getElementById('card-img-tema');
   if (item.imgTema === 'sim') {
-    imgTema.src = `imagens/tema_${item.id}.png`;
+    const srcTema = `imagens/tema_${item.id}.png`;
+    imgTema.src = srcTema;
     imgTema.style.display = 'block';
+    configurarRetryImagem(imgTema, srcTema); // ← NOVO
   } else {
     imgTema.src = '';
     imgTema.style.display = 'none';
+    imgTema.onerror = null;
+    imgTema.onload = null;
+    // Remove botão de retry se existir
+    const retryBtnTema = imgTema.parentElement.querySelector('.img-retry-btn');
+    if (retryBtnTema) retryBtnTema.remove();
   }
 
   const imgItem = document.getElementById('card-img-item');
   if (item.imgItem === 'sim') {
-    imgItem.src = `imagens/item_${item.id}.png`;
+    const srcItem = `imagens/item_${item.id}.png`;
+    imgItem.src = srcItem;
     imgItem.style.display = 'block';
+    configurarRetryImagem(imgItem, srcItem); // ← NOVO
   } else {
     imgItem.src = '';
     imgItem.style.display = 'none';
+    imgItem.onerror = null;
+    imgItem.onload = null;
+    // Remove botão de retry se existir
+    const retryBtnItem = imgItem.parentElement.querySelector('.img-retry-btn');
+    if (retryBtnItem) retryBtnItem.remove();
   }
 
   const rev = parseInt(item.totalRevisoes) || 0;
