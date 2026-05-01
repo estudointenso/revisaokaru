@@ -187,7 +187,7 @@
     transform: rotateY(180deg);
     background: var(--surface2);
     border-color: var(--accent);
-    justify-content: center;
+    justify-content: safe center;
   }
   .card-face-content {
     font-size: 24px;
@@ -320,7 +320,7 @@
     flex-shrink: 0;
     transition: opacity .3s ease;
   }
-  .nav-sair.hidden { opacity: 0; pointer-events: none; }
+  .nav-sair.hidden { display: none; }
 
   #screen-summary {
     gap: 14px;
@@ -484,7 +484,6 @@
       <div class="card-face card-front">
         <div class="card-badge" id="card-badge-front"></div>
         <div class="card-face-content" id="card-tema">—</div>
-        <img class="card-img" id="card-img-tema" src="" alt="" style="display:none" onclick="abrirLightbox(event, this.src)">
         <div class="card-tap-hint">👆 TOQUE PARA SABER MAIS 👆</div>
       </div>
       <div class="card-face card-back">
@@ -492,6 +491,10 @@
         <img class="card-img" id="card-img-item" src="" alt="" style="display:none" onclick="abrirLightbox(event, this.src)">
       </div>
     </div>
+  </div>
+  <div id="btn-ver-imagem-wrap" style="display:none; padding: 8px 0 0; text-align:center;">
+    <button class="btn btn-primary" onclick="abrirLightbox(event, document.getElementById('lightbox-img-tema-src').value)">VER IMAGEM</button>
+    <input type="hidden" id="lightbox-img-tema-src" value="">
   </div>
   <div class="eval-buttons hidden" id="eval-buttons">
     <button class="btn-eval btn-nao-lembrei" onclick="avaliar('nao')">
@@ -752,21 +755,14 @@ function atualizarCard(animar, direcao) {
   document.getElementById('card-tema').innerHTML = (item.tema || '—').replace(/\n/g, '<br>');
   document.getElementById('card-text').innerHTML = (item.item || '').replace(/\n/g, '<br>');
 
-  const imgTema = document.getElementById('card-img-tema');
+  const btnVerImagem = document.getElementById('btn-ver-imagem-wrap');
   if (item.imgTema === 'sim') {
-    const srcTema = `imagens/tema_${item.id}.png`;
-    imgTema.src = srcTema;
-    imgTema.style.display = 'block';
-    configurarRetryImagem(imgTema, srcTema); // ← NOVO
+    document.getElementById('lightbox-img-tema-src').value = `imagens/tema_${item.id}.png`;
+    btnVerImagem.dataset.temImagem = 'sim';
   } else {
-    imgTema.src = '';
-    imgTema.style.display = 'none';
-    imgTema.onerror = null;
-    imgTema.onload = null;
-    // Remove botão de retry se existir
-    const retryBtnTema = imgTema.parentElement.querySelector('.img-retry-btn');
-    if (retryBtnTema) retryBtnTema.remove();
+    btnVerImagem.dataset.temImagem = 'nao';
   }
+  btnVerImagem.style.display = btnVerImagem.dataset.temImagem === 'sim' ? 'block' : 'none';
 
   const imgItem = document.getElementById('card-img-item');
   if (item.imgItem === 'sim') {
@@ -840,8 +836,9 @@ function virarCard() {
   if (!cardVirado) {
     cardVirado = true;
     flipCard.classList.add('flipped');
+    document.getElementById('btn-ver-imagem-wrap').style.display = 'none';
     setTimeout(() => {
-      animando = false; // ← LIBERA APÓS ANIMAÇÃO
+      animando = false;
       if (modoTreino) {
         navBtns.classList.remove('hidden');
         document.getElementById('nav-sair').classList.remove('hidden');
@@ -850,13 +847,17 @@ function virarCard() {
       }
     }, 350);
   } else {
-    animando = true; // ← LOCK
+    animando = true;
     cardVirado = false;
     flipCard.classList.remove('flipped');
     evalBtns.classList.add('hidden');
     navBtns.classList.add('hidden');
     document.getElementById('nav-sair').classList.add('hidden');
-    setTimeout(() => { animando = false; }, 550); // ← LIBERA APÓS ANIMAÇÃO
+    setTimeout(() => {
+      animando = false;
+      const bvi = document.getElementById('btn-ver-imagem-wrap');
+      bvi.style.display = bvi.dataset.temImagem === 'sim' ? 'block' : 'none';
+    }, 550);
   }
 }
 
