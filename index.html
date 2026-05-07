@@ -958,6 +958,9 @@ async function mostrarResumo(summaryPreCarregado) {
 
   let historico = [];
   try {
+    // ✅ PREENCHE LACUNAS ANTES DE BUSCAR O HISTÓRICO
+    await fetch(`${APP_URL}?action=preencherLacunas`).catch(() => {});
+    
     const data = summaryPreCarregado || await fetch(`${APP_URL}?action=getSummary`).then(r => r.json());
     historico = data.historico || [];
   } catch (e) {
