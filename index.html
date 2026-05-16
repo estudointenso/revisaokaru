@@ -98,16 +98,6 @@
   .review-counter { font-size: 19px; font-weight: 600; color: var(--text-muted); }
   .review-counter span { color: var(--text); }
 
-  .treino-badge {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--orange);
-    background: var(--orange-bg);
-    border: 1px solid var(--orange-border);
-    padding: 5px 14px;
-    border-radius: 20px;
-  }
-
   .progress-bar {
     height: 4px;
     background: var(--surface2);
@@ -121,9 +111,6 @@
     background: linear-gradient(90deg, var(--accent), var(--green));
     border-radius: 2px;
     transition: width .4s ease;
-  }
-  .progress-fill.treino {
-    background: linear-gradient(90deg, var(--orange), #f5d623);
   }
 
   .card-area {
@@ -222,7 +209,6 @@
   }
   .badge-novo { background: var(--accent-dim); color: var(--accent); }
   .badge-revisao { background: var(--green-bg); color: var(--green); }
-  .badge-treino { background: var(--orange-bg); color: var(--orange); }
   .badge-futuro { background: #1a2b2b; color: #4ecdc4; border: 1px solid #2a4a4a; }
 
   .card-img {
@@ -283,44 +269,6 @@
   .btn-lembrei:active { filter: brightness(1.2); }
   .btn-nao-lembrei { background: var(--red-bg); border: 1.5px solid var(--red-border); color: var(--red); }
   .btn-nao-lembrei:active { filter: brightness(1.2); }
-
-  .nav-buttons {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
-    gap: 10px;
-    padding: 8px 0 max(12px, env(safe-area-inset-bottom));
-    flex-shrink: 0;
-    transition: opacity .3s ease;
-  }
-  .nav-buttons.hidden  { display: none; }
-
-  .btn-nav {
-    border: 1.5px solid var(--orange-border);
-    border-radius: var(--radius);
-    padding: 16px 16px;
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    transition: transform .15s, filter .15s;
-    background: var(--orange-bg);
-    color: var(--orange);
-  }
-  .btn-nav:active { transform: scale(0.95); filter: brightness(1.2); }
-  .btn-nav .nav-icon { font-size: 28px; }
-  .btn-nav .nav-label { font-size: 18px; }
-  .btn-nav:disabled { opacity: 0.3; pointer-events: none; }
-
-  .nav-sair {
-    padding: 0 0 max(16px, env(safe-area-inset-bottom));
-    flex-shrink: 0;
-    transition: opacity .3s ease;
-  }
-  .nav-sair.hidden { display: none; }
 
   #screen-summary {
     gap: 14px;
@@ -474,7 +422,6 @@
 <div class="screen" id="screen-review">
   <div class="review-header">
     <div class="review-counter"><span id="counter-atual">1</span> de <span id="counter-total">0</span></div>
-    <div class="treino-badge" id="treino-badge" style="display:none">🎯 Modo Treino</div>
   </div>
   <div class="progress-bar">
     <div class="progress-fill" id="progress-fill" style="width:0%"></div>
@@ -498,26 +445,13 @@
   </div>
   <div class="eval-buttons hidden" id="eval-buttons">
     <button class="btn-eval btn-nao-lembrei" onclick="avaliar('nao')">
-      <span class="eval-icon">✕</span>
-      <span class="eval-label">Não lembrei</span>
+      <span class="eval-icon">🔁</span>
+      <span class="eval-label">Repetir</span>
     </button>
     <button class="btn-eval btn-lembrei" onclick="avaliar('sim')">
-      <span class="eval-icon">✓</span>
-      <span class="eval-label">Lembrei</span>
+      <span class="eval-icon">⭐</span>
+      <span class="eval-label">Decorei</span>
     </button>
-  </div>
-  <div class="nav-buttons hidden" id="nav-buttons">
-    <button class="btn-nav" id="btn-anterior" onclick="navegarTreino(-1)">
-      <span class="nav-icon">←</span>
-      <span class="nav-label">Anterior</span>
-    </button>
-    <button class="btn-nav" id="btn-proximo" onclick="navegarTreino(1)">
-      <span class="nav-icon">→</span>
-      <span class="nav-label">Próximo</span>
-    </button>
-  </div>
-  <div class="nav-sair hidden" id="nav-sair">
-    <button class="btn btn-ghost" onclick="sairDoTreino()">Sair do treino</button>
   </div>
 </div>
 
@@ -529,11 +463,11 @@
   <div class="summary-stats">
     <div class="stat-card">
       <div class="stat-number green" id="stat-lembrei">0</div>
-      <div class="stat-label">Lembrei</div>
+      <div class="stat-label">Decorei</div>
     </div>
     <div class="stat-card">
       <div class="stat-number red" id="stat-nao">0</div>
-      <div class="stat-label">Não lembrei</div>
+      <div class="stat-label">Repetir</div>
     </div>
   </div>
   <div class="summary-pct">
@@ -556,7 +490,6 @@
   </div>
   <div class="summary-syncing" id="sync-status"></div>
   <div class="summary-actions">
-      <button class="btn btn-primary" id="btn-nova-rodada" onclick="novaRodada()">🎯 Entrar no modo treino</button>
       <button class="btn btn-primary" id="btn-voltar-menu" style="display:none" onclick="voltarAoMenu()">← Voltar ao menu</button>
   </div>
 </div>
@@ -592,8 +525,6 @@ let idx = 0;
 let resultados = [];
 let cardVirado = false;
 let animando = false;
-let modoTreino = false;
-let idsVistosTreino = [];
 
 function hojeStr() {
   return new Date().toISOString().slice(0, 10);
@@ -667,50 +598,27 @@ async function carregarItens() {
     resultados = (dataSummary.avaliacoes || []).map(a => ({ id: a.id, avaliacao: a.avaliacao }));
     itens = dataItens.itens || [];
     idx = 0;
-    modoTreino = false;
 
-    document.getElementById('inicio-data').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+    const historico = dataSummary.historico || [];
+    const ontem = new Date();
+    ontem.setDate(ontem.getDate() - 1);
+    const ontemStr = `${String(ontem.getDate()).padStart(2,'0')}/${String(ontem.getMonth()+1).padStart(2,'0')}/${ontem.getFullYear()}`;
+    const diaAnterior = historico.find(h => h.data === ontemStr);
+
+    let msgInicio = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+    if (diaAnterior && diaAnterior.pct > 0) {
+      const dataFmt = `${String(ontem.getDate()).padStart(2,'0')}/${String(ontem.getMonth()+1).padStart(2,'0')}/${ontem.getFullYear()}`;
+      let frase = '';
+      if (diaAnterior.pct >= 90)      frase = 'você teve um desempenho excelente! Você é uma máquina de estudar.';
+      else if (diaAnterior.pct >= 70) frase = 'você teve um ótimo desempenho! Continue nesse ritmo.';
+      else if (diaAnterior.pct >= 50) frase = 'você teve um desempenho regular. Tente intensificar mais o estudo.';
+      else                             frase = 'você teve um desempenho ruim. Toma vergonha na cara e estuda.';
+      msgInicio = `No dia ${dataFmt} ${frase}`;
+    }
+    document.getElementById('inicio-data').textContent = msgInicio;
     mostrarTela('screen-inicio');
   } catch (e) {
     location.reload();
-  }
-}
-
-async function carregarTreino() {
-  mostrarTela('screen-loading');
-  document.getElementById('loading-msg').textContent = 'Preparando modo treino…';
-  try {
-    const [resTodos, resFila] = await Promise.all([
-      fetch(`${APP_URL}?action=getTodosItens`, { method: 'GET' }),
-      fetch(`${APP_URL}?action=getFilaTreino`, { method: 'GET' })
-    ]);
-    const dataTodos = await resTodos.json();
-    const dataFila  = await resFila.json();
-
-    if (!dataTodos.itens || dataTodos.itens.length === 0) {
-      mostrarResumoVazio();
-      return;
-    }
-
-    const vistos = (dataFila.ids || []).map(String);
-    let pendentes = dataTodos.itens.filter(i => !vistos.includes(String(i.id)));
-
-    if (pendentes.length === 0) {
-      await fetch(APP_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'zerarFilaTreino' }),
-        headers: { 'Content-Type': 'text/plain' }
-      });
-      pendentes = dataTodos.itens;
-    }
-
-    itens = embaralhar(pendentes);
-    idsVistosTreino = vistos;
-    idx = 0;
-    modoTreino = true;
-    iniciarRevisao();
-  } catch (e) {
-    mostrarErroConexao(); // ← MUDANÇA AQUI (era mostrarResumoVazio)
   }
 }
 
@@ -728,7 +636,6 @@ function mostrarResumoVazio() {
   document.getElementById('pct-msg').textContent = 'Nenhum item no banco ainda.';
   document.getElementById('pct-bar').style.width = '0%';
   document.getElementById('sync-status').innerHTML = '';
-  document.getElementById('btn-nova-rodada').textContent = 'Tentar novamente';
   document.getElementById('bloco-historico').style.display = 'none';
 }
 
@@ -739,9 +646,6 @@ function mostrarResumoVazio() {
 // ───────────────────────────────────────────────────────────────
 function iniciarRevisao() {
   mostrarTela('screen-review');
-  document.getElementById('treino-badge').style.display = modoTreino ? 'block' : 'none';
-  const pf = document.getElementById('progress-fill');
-  pf.className = 'progress-fill' + (modoTreino ? ' treino' : '');
   atualizarCard(false, 'right');
 }
 
@@ -783,27 +687,18 @@ function atualizarCard(animar, direcao) {
   const rev = parseInt(item.totalRevisoes) || 0;
   const badgeFront = document.getElementById('card-badge-front');
 
-  if (modoTreino) {
-    badgeFront.className = 'card-badge badge-treino';
-    badgeFront.textContent = '🎯 Treino';
-  } else if (item.diasAdiantado > 0) {
-    badgeFront.className = 'card-badge badge-futuro';
-    badgeFront.textContent = `⏭ +${item.diasAdiantado}d adiantado`;
-  } else if (rev === 0) {
+  if (item.diasAdiantado > 0) {
+      badgeFront.className = 'card-badge badge-futuro';
+      badgeFront.textContent = `⏭ +${item.diasAdiantado}d adiantado`;
+    } else if (rev === 0) {
     badgeFront.className = 'card-badge badge-novo';
     badgeFront.textContent = '✨ Novo item';
-  } else {
+    } else {
     badgeFront.className = 'card-badge badge-revisao';
     badgeFront.textContent = `🔁 ${rev}ª revisão`;
-  }
+    }
 
   document.getElementById('eval-buttons').classList.add('hidden');
-  document.getElementById('nav-buttons').classList.add('hidden');
-  document.getElementById('nav-sair').classList.add('hidden');
-
-  if (modoTreino) {
-    document.getElementById('btn-anterior').disabled = idx === 0;
-  }
 
   cardVirado = false;
   const flipCard = document.getElementById('flip-card');
@@ -831,7 +726,6 @@ function virarCard() {
 
   const flipCard = document.getElementById('flip-card');
   const evalBtns = document.getElementById('eval-buttons');
-  const navBtns  = document.getElementById('nav-buttons');
 
   if (!cardVirado) {
     cardVirado = true;
@@ -839,20 +733,13 @@ function virarCard() {
     document.getElementById('btn-ver-imagem-wrap').style.display = 'none';
     setTimeout(() => {
       animando = false;
-      if (modoTreino) {
-        navBtns.classList.remove('hidden');
-        document.getElementById('nav-sair').classList.remove('hidden');
-      } else {
-        evalBtns.classList.remove('hidden');
-      }
+      evalBtns.classList.remove('hidden');
     }, 350);
   } else {
     animando = true;
     cardVirado = false;
     flipCard.classList.remove('flipped');
     evalBtns.classList.add('hidden');
-    navBtns.classList.add('hidden');
-    document.getElementById('nav-sair').classList.add('hidden');
     setTimeout(() => {
       animando = false;
       const bvi = document.getElementById('btn-ver-imagem-wrap');
@@ -861,45 +748,7 @@ function virarCard() {
   }
 }
 
-function navegarTreino(direcao) {
-  const flipCard = document.getElementById('flip-card');
-  document.getElementById('nav-buttons').classList.add('hidden');
-  document.getElementById('nav-sair').classList.add('hidden');
-
-  if (direcao === 1 && !idsVistosTreino.includes(String(itens[idx].id))) {
-    idsVistosTreino.push(String(itens[idx].id));
-    registrarVistoTreino(itens[idx].id);
-  }
-
-  const exitClass = direcao === 1 ? 'exit-left' : 'exit-right';
-  flipCard.style.transition = 'transform .22s ease, opacity .22s ease';
-  flipCard.classList.add(exitClass);
-
-  setTimeout(() => {
-    flipCard.classList.remove(exitClass);
-    flipCard.style.transition = '';
-    const novoIdx = idx + direcao;
-    if (novoIdx >= itens.length) {
-      mostrarResumo();
-    } else if (novoIdx < 0) {
-      atualizarCard(true, 'right');
-    } else {
-      idx = novoIdx;
-      atualizarCard(true, direcao === 1 ? 'right' : 'left');
-    }
-  }, 230);
-}
-
-function registrarVistoTreino(id) {
-  fetch(APP_URL, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'adicionarFilaTreino', id: String(id) }),
-    headers: { 'Content-Type': 'text/plain' }
-  }).catch(() => {});
-}
-
 async function finalizarSessao(pct, lembrei, naoLembrei) {
-  if (modoTreino) return;
   await fetch(APP_URL, {
     method: 'POST',
     body: JSON.stringify({ action: 'finalizarSessao', pct, lembrei, naoLembrei }),
@@ -931,7 +780,7 @@ async function avaliar(resp) {
     document.getElementById('block-overlay').classList.add('active');
     const totalLembrei = resultados.filter(r => r.avaliacao === 'Lembrei').length;
     const totalNao     = resultados.filter(r => r.avaliacao === 'Não lembrei').length;
-    const totalPct     = Math.round((totalLembrei / resultados.length) * 100);
+    const totalPct = Math.min(100, Math.round((resultados.length / 40) * 100));
     await finalizarSessao(totalPct, totalLembrei, totalNao);
   }
 
@@ -969,30 +818,22 @@ async function mostrarResumo(summaryPreCarregado) {
 
   const hoje = historico.find(h => h.data === new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '/'));
   const lembrei = hoje ? hoje.lembrei : 0;
-  const nao     = hoje ? hoje.naoLembrei : 0;
-  const total   = lembrei + nao;
-  const pct     = total > 0 ? Math.round((lembrei / total) * 100 + 0.0000001) : 0;
+  const nao = hoje ? hoje.naoLembrei : 0;
+  const total = lembrei + nao;
+  const pct = Math.min(100, Math.round((total / 40) * 100));
 
   document.getElementById('stat-lembrei').textContent = total > 0 ? lembrei : '—';
   document.getElementById('stat-nao').textContent     = total > 0 ? nao     : '—';
   document.getElementById('pct-valor').textContent    = total > 0 ? pct + '%' : '—';
   document.getElementById('summary-data').textContent = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  let emoji = '✅', msg = '';
-  if (total === 0) {
-    emoji = '📊'; msg = 'Nenhuma revisão feita ainda hoje.';
-  } else if (pct >= 90) { emoji = '🔥'; msg = 'Excelente! Você está dominando o conteúdo.'; }
-  else if (pct >= 70)   { emoji = '✅'; msg = 'Ótimo desempenho! Continue assim.'; }
-  else if (pct >= 50)   { emoji = '💪'; msg = 'Bom esforço. Os itens difíceis voltarão em breve.'; }
-  else                  { emoji = '📚'; msg = 'Não desanime! A repetição vai consolidar o conteúdo.'; }
-
+  let emoji = '📊';
   document.getElementById('summary-emoji').textContent = emoji + ' HISTÓRICO';
-  document.getElementById('pct-msg').textContent       = msg;
-  document.getElementById('sync-status').innerHTML     = total > 0
+  document.getElementById('pct-msg').textContent = '';
+
+  document.getElementById('sync-status').innerHTML = total > 0
     ? '<span style="color:var(--green)">✓ Itens salvos automaticamente</span>'
     : '';
-  document.getElementById('btn-nova-rodada').textContent    = '🎯 Entrar no modo treino';
-  document.getElementById('btn-nova-rodada').dataset.action = 'treino';
   document.getElementById('btn-voltar-menu').style.display = '';
 
   const barEl    = document.getElementById('pct-bar');
@@ -1071,26 +912,12 @@ function renderizarHistorico(historico) {
   }
 }
 
-function sairDoTreino() {
-  mostrarResumo();
-}
-
 function iniciarRevisaoDiaria() {
   if (!itens || itens.length === 0) {
     mostrarResumo();
     return;
   }
   iniciarRevisao();
-}
-
-async function novaRodada() {
-  const btn = document.getElementById('btn-nova-rodada');
-  if (btn.dataset.action === 'treino') {
-    btn.dataset.action = '';
-    await carregarTreino();
-  } else {
-    await carregarItens();
-  }
 }
 
 function toast(msg) {
@@ -1112,7 +939,6 @@ function fecharLightbox() {
 }
 
 function voltarAoMenu() {
-  document.getElementById('btn-nova-rodada').style.display = '';
   document.getElementById('btn-voltar-menu').style.display = 'none';
   carregarItens();
 }
