@@ -598,7 +598,7 @@ async function carregarItens() {
     const dataItens   = await resItens.json();
     const dataSummary = await resSummary.json();
 
-    resultados = (dataSummary.avaliacoes || []).map(a => ({ id: a.id, avaliacao: a.avaliacao }));
+    resultados = [];
     itens = dataItens.itens || [];
     idx = 0;
 
