@@ -528,6 +528,8 @@ let idx = 0;
 let resultados = [];
 let cardVirado = false;
 let animando = false;
+let sessaoConcluida = false;
+let modoLivre = false;
 
 function hojeStr() {
   return new Date().toISOString().slice(0, 10);
@@ -586,13 +588,17 @@ function configurarRetryImagem(imgElement, srcOriginal) {
 // ───────────────────────────────────────────────────────────────
 // CARREGAMENTO INICIAL
 // ───────────────────────────────────────────────────────────────
-async function carregarItens() {
+async function carregarItens(modeLivre = false) {
   mostrarTela('screen-loading');
   document.getElementById('loading-msg').textContent = 'Carregando itens do dia…';
 
   try {
+    const urlItens = modeLivre
+      ? `${APP_URL}?action=getItens&modo=livre`
+      : `${APP_URL}?action=getItens`;
+
     const [resItens, resSummary] = await Promise.all([
-      fetch(`${APP_URL}?action=getItens`, { method: 'GET' }),
+      fetch(urlItens, { method: 'GET' }),
       fetch(`${APP_URL}?action=getSummary`, { method: 'GET' })
     ]);
     const dataItens   = await resItens.json();
@@ -778,11 +784,12 @@ async function avaliar(resp) {
 
   const isUltimoItem = (idx + 1) >= itens.length;
   if (isUltimoItem) {
+    sessaoConcluida = true;
     mostrarTela('screen-loading');
     document.getElementById('loading-msg').textContent = 'Calculando aproveitamento…';
     document.getElementById('block-overlay').classList.add('active');
     const totalLembrei = resultados.filter(r => r.avaliacao === 'Decorei').length;
-    const totalNao = resultados.filter(r => r.avaliacao === 'Repetir').length;
+    const totalNao     = resultados.filter(r => r.avaliacao === 'Repetir').length;
     const totalPct = Math.min(100, Math.round((resultados.length / 40) * 100));
     await finalizarSessao(totalPct, totalLembrei, totalNao);
   }
@@ -917,7 +924,7 @@ function renderizarHistorico(historico) {
 
 function iniciarRevisaoDiaria() {
   if (!itens || itens.length === 0) {
-    mostrarResumo();
+    carregarItens(true);
     return;
   }
   iniciarRevisao();
@@ -943,7 +950,13 @@ function fecharLightbox() {
 
 function voltarAoMenu() {
   document.getElementById('btn-voltar-menu').style.display = 'none';
-  mostrarTela('screen-inicio');  // ← em vez de carregarItens()
+  if (sessaoConcluida) {
+    sessaoConcluida = false;
+    itens = [];
+    carregarItens(true);
+  } else {
+    mostrarTela('screen-inicio');
+  }
 }
 
 window.addEventListener('load', () => { carregarItens(); });
