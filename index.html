@@ -766,7 +766,7 @@ async function avaliar(resp) {
   const item      = itens[idx];
   const flipCard  = document.getElementById('flip-card');
   const evalBtns  = document.getElementById('eval-buttons');
-  const avaliacao = resp === 'sim' ? 'Lembrei' : 'Não lembrei';
+  const avaliacao = resp === 'sim' ? 'Decorei' : 'Repetir';
 
   resultados.push({ id: item.id, avaliacao });
 
@@ -781,8 +781,8 @@ async function avaliar(resp) {
     mostrarTela('screen-loading');
     document.getElementById('loading-msg').textContent = 'Calculando aproveitamento…';
     document.getElementById('block-overlay').classList.add('active');
-    const totalLembrei = resultados.filter(r => r.avaliacao === 'Lembrei').length;
-    const totalNao     = resultados.filter(r => r.avaliacao === 'Não lembrei').length;
+    const totalLembrei = resultados.filter(r => r.avaliacao === 'Decorei').length;
+    const totalNao = resultados.filter(r => r.avaliacao === 'Repetir').length;
     const totalPct = Math.min(100, Math.round((resultados.length / 40) * 100));
     await finalizarSessao(totalPct, totalLembrei, totalNao);
   }
