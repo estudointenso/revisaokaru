@@ -943,7 +943,7 @@ function fecharLightbox() {
 
 function voltarAoMenu() {
   document.getElementById('btn-voltar-menu').style.display = 'none';
-  carregarItens();
+  mostrarTela('screen-inicio');  // ← em vez de carregarItens()
 }
 
 window.addEventListener('load', () => { carregarItens(); });
