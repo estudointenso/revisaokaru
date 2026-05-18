@@ -608,6 +608,11 @@ async function carregarItens(modeLivre = false) {
     itens = dataItens.itens || [];
     idx = 0;
 
+    if (modeLivre && itens.length > 0) {
+      iniciarRevisao();
+      return;
+    }
+
     const historico = dataSummary.historico || [];
     const ontem = new Date();
     ontem.setDate(ontem.getDate() - 1);
