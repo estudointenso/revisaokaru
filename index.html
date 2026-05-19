@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>REVISÃO KARU</title>
+<title>REVISÃO Karu</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -530,6 +530,9 @@ let cardVirado = false;
 let animando = false;
 let sessaoConcluida = false;
 let modoLivre = false;
+const LS_HIST_KEY  = 'revisao_historico';
+const LS_HIST_DATE = 'revisao_historico_data';
+let historicoDirty = false;
 
 function hojeStr() {
   return new Date().toISOString().slice(0, 10);
@@ -542,6 +545,7 @@ function mostrarTela(id) {
   document.getElementById('block-overlay').classList.remove('active');
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  document.getElementById(id).scrollTop = 0;
 }
 
 function embaralhar(arr) {
@@ -781,6 +785,8 @@ async function avaliar(resp) {
 
   resultados.push({ id: item.id, avaliacao });
 
+  historicoDirty = true;
+
   fetch(APP_URL, {
     method: 'POST',
     body: JSON.stringify({ action: 'processarAvaliacoes', resultados: [{ id: item.id, avaliacao }] }),
@@ -822,11 +828,18 @@ async function mostrarResumo(summaryPreCarregado) {
 
   let historico = [];
   try {
-    // ✅ PREENCHE LACUNAS ANTES DE BUSCAR O HISTÓRICO
-    await fetch(`${APP_URL}?action=preencherLacunas`).catch(() => {});
-    
-    const data = summaryPreCarregado || await fetch(`${APP_URL}?action=getSummary`).then(r => r.json());
-    historico = data.historico || [];
+    const cacheDia  = localStorage.getItem(LS_HIST_DATE);
+    const cacheData = localStorage.getItem(LS_HIST_KEY);
+    if (cacheDia === hojeStr() && cacheData && !historicoDirty) {
+      historico = JSON.parse(cacheData);
+    } else {
+      await fetch(`${APP_URL}?action=preencherLacunas`).catch(() => {});
+      const data = await fetch(`${APP_URL}?action=getSummary`).then(r => r.json());
+      historico = data.historico || [];
+      localStorage.setItem(LS_HIST_KEY,  JSON.stringify(historico));
+      localStorage.setItem(LS_HIST_DATE, hojeStr());
+      historicoDirty = false;
+    }
   } catch (e) {
     historico = [];
   }
@@ -958,7 +971,7 @@ function voltarAoMenu() {
   if (sessaoConcluida) {
     sessaoConcluida = false;
     itens = [];
-    carregarItens(false);
+    carregarItens(false); // ← false, não true
   } else {
     mostrarTela('screen-inicio');
   }
