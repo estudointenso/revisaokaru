@@ -532,7 +532,6 @@ let sessaoConcluida = false;
 let modoLivre = false;
 const LS_HIST_KEY  = 'revisao_historico';
 const LS_HIST_DATE = 'revisao_historico_data';
-let historicoDirty = false;
 
 function hojeStr() {
   return new Date().toISOString().slice(0, 10);
@@ -785,7 +784,7 @@ async function avaliar(resp) {
 
   resultados.push({ id: item.id, avaliacao });
 
-  historicoDirty = true;
+  localStorage.setItem('revisao_dirty', 'true');
 
   fetch(APP_URL, {
     method: 'POST',
@@ -830,7 +829,7 @@ async function mostrarResumo(summaryPreCarregado) {
   try {
     const cacheDia  = localStorage.getItem(LS_HIST_DATE);
     const cacheData = localStorage.getItem(LS_HIST_KEY);
-    if (cacheDia === hojeStr() && cacheData && !historicoDirty) {
+    if (cacheDia === hojeStr() && cacheData && localStorage.getItem('revisao_dirty') !== 'true') {
       historico = JSON.parse(cacheData);
     } else {
       await fetch(`${APP_URL}?action=preencherLacunas`).catch(() => {});
@@ -838,7 +837,7 @@ async function mostrarResumo(summaryPreCarregado) {
       historico = data.historico || [];
       localStorage.setItem(LS_HIST_KEY,  JSON.stringify(historico));
       localStorage.setItem(LS_HIST_DATE, hojeStr());
-      historicoDirty = false;
+      localStorage.removeItem('revisao_dirty');
     }
   } catch (e) {
     historico = [];
